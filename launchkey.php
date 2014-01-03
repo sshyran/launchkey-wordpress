@@ -491,9 +491,8 @@ class LaunchKey {
 		if (hide != 'true' && !is_user_logged_in()) {
 			$this->launchkey_form($class, $id, $style);
 		}
-		
 	} //end launchkey_shortcode
-
+	
 } //end class LaunchKey
 
 $LaunchKey = new LaunchKey();
