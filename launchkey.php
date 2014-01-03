@@ -469,7 +469,7 @@ class LaunchKey {
 	/**
 	 * launchkey_shortcode - outputs a launchkey login button
 	 * 
-	 * @param array $atts
+	 * @param $atts
 	 *
 	 * @access public
 	 * @return void
@@ -480,14 +480,18 @@ class LaunchKey {
 				'class' => '',
 				'id' => '',
 				'style' => '',
+				'hide' => ''
 			), $atts )
 		);
 		
 		$class = addslashes($class);
 		$id = addslashes($id);
 		$style = addslashes($style);
+
+		if (hide != 'true' && !is_user_logged_in()) {
+			$this->launchkey_form($class, $id, $style);
+		}
 		
-		$this->launchkey_form($class, $id, $style);
 	} //end launchkey_shortcode
 
 } //end class LaunchKey
