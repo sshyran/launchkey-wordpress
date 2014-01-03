@@ -469,7 +469,7 @@ class LaunchKey {
 	/**
 	 * launchkey_shortcode - outputs a launchkey login button
 	 * 
-	 * @param $atts
+	 * @param array $atts
 	 *
 	 * @access public
 	 * @return void
