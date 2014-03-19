@@ -201,10 +201,14 @@ class LaunchKey {
 	/**
 	 * launchkey_form - login form for wp-login.php
 	 *
+	 * @param string $class
+	 * @param string $id
+	 * @param string $style
+	 * 
 	 * @access public
 	 * @return void
 	 */
-	public function launchkey_form() {
+	public function launchkey_form($class = '', $id = '', $style = '') {
 		$app_key = get_option( 'launchkey_app_key' );
 		//output sanitization
 		if ( ! is_numeric( $app_key ) ) {
@@ -213,21 +217,21 @@ class LaunchKey {
 
 		$redirect = admin_url( 'admin-ajax.php?action=launchkey-callback' );
 		if ( isset( $_GET['launchkey_error'] ) ) {
-			echo '<div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> The LaunchKey request was denied or an issue was detected during authentication. Please try again. </p></div><br>';
+			echo '<div class="'.$class.'" id="'.$id.'" style="'.$style.'"><div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> The LaunchKey request was denied or an issue was detected during authentication. Please try again. </p></div></div><br>';
 		}
 		elseif ( isset( $_GET['launchkey_ssl_error'] ) ) {
-			echo '<div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> There was an error trying to request the LaunchKey servers. If this persists you may need to disable SSL verification. </p></div><br>';
+			echo '<div class="'.$class.'" id="'.$id.'" style="'.$style.'"><div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> There was an error trying to request the LaunchKey servers. If this persists you may need to disable SSL verification. </p></div></div><br>';
 		}
 		elseif ( isset( $_GET['launchkey_security'] ) ) {
-			echo '<div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> There was a security issue detected and you have been logged out for your safety. Log back 0in to ensure a secure session.</p></div><br>';
+			echo '<div class="'.$class.'" id="'.$id.'" style="'.$style.'"><div style="padding:10px;background-color:#FFDFDD;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Error!</strong> There was a security issue detected and you have been logged out for your safety. Log back 0in to ensure a secure session.</p></div></div><br>';
 		}
 
 		if ( isset( $_GET['launchkey_pair'] ) ) {
-			echo '<div style="padding:10px;background-color:#eef5ff;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Almost finished!</strong> Log in with your WordPress username and password for the last time to finish the user pair process. After this you can login exclusively with LaunchKey!</p></div><br>';
+			echo '<div class="'.$class.'" id="'.$id.'" style="'.$style.'"><div style="padding:10px;background-color:#eef5ff;border:1px solid #ced9ea;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;"><p style="line-height:1.6em;"><strong>Almost finished!</strong> Log in with your WordPress username and password for the last time to finish the user pair process. After this you can login exclusively with LaunchKey!</p></div></div><br>';
 		}
 		else {
 			$login_url = 'https://oauth.launchkey.com/authorize?client_id=' . $app_key . '&redirect_uri=' . urlencode($redirect);
-			echo '
+			echo '<div class="'.$class.'" id="'.$id.'" style="'.$style.'">
                 <span onclick="window.location.href=\'' . $login_url . '\'" style="cursor:pointer;display:block;text-align:center;padding:0;background-color:#fcfcfc;border:1px solid #e5e5e5;border-radius:3px;-webkit-border-radius:3px;-moz-border-radius:3px;">
                     <span style="display:inline-block;height:55px;line-height:55px;padding:0;margin:0;">
                         <span style="display:inline-block;padding:0;">
@@ -235,7 +239,7 @@ class LaunchKey {
                             </span>
                         <a href="' . $login_url . '" title="Log in with LaunchKey" style="text-decoration:none;">Log in with LaunchKey</a>
                     </span>
-                </span><br>';
+                </span></div><br>';
 		}
 	} //end launchkey_form
 
@@ -464,14 +468,31 @@ class LaunchKey {
 
 	/**
 	 * launchkey_shortcode - outputs a launchkey login button
+	 * 
+	 * @param $atts
 	 *
 	 * @access public
 	 * @return void
 	 */
-	public function launchkey_shortcode() {
-		$this->launchkey_form();
-	} //end launchkey_shortcode
+	public function launchkey_shortcode($atts) {
+		extract( shortcode_atts(
+			array(
+				'class' => '',
+				'id' => '',
+				'style' => '',
+				'hide' => ''
+			), $atts )
+		);
+		
+		$class = addslashes($class);
+		$id = addslashes($id);
+		$style = addslashes($style);
 
+		if (hide != 'true' && !is_user_logged_in()) {
+			$this->launchkey_form($class, $id, $style);
+		}
+	} //end launchkey_shortcode
+	
 } //end class LaunchKey
 
 $LaunchKey = new LaunchKey();
