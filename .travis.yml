@@ -1,0 +1,21 @@
+language: php
+php:
+- 5.3
+- 5.4
+- 5.5
+- 5.6
+- hhvm
+- 7.0
+
+matrix:
+  allow_failures:
+    - php: 7.0
+
+install: composer install --prefer-source
+
+script: bin/phpunit
+
+notifications:
+  email:
+    recipients:
+    - secure: N2CY99C408tdirbH75NBl48ubw7sWTirCOiuUHoCDSdM9TFga/Brz2Ux9AxxhAJ/gy93lt/MFSdIwSBawk928/2H2EXpnsv97IFyH6/GwB6DHtvxYc1lqJsW31jbnjLpQLoUjnedpTNk/GLnMqZ0KDg3vmMKNfRRC0xcMrR+g8Q=

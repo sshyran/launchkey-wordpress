@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="LaunchKey WordPress Plugin" default="build" description="">
+
+        <target name="prepare" description="Prepare build target for packaging">
+            <echo level="verbose">Making package build directory</echo>
+            <mkdir dir="./build/package" />
+
+            <echo level="verbose">Making package build language files directory</echo>
+            <mkdir dir="./build/package/languages" />
+        </target>
+
+        <target name="build" depends="prepare" description="Package the WordPress Plugin as ready for installation ">
+            <echo level="verbose">Copying plugin root to package</echo>
+            <copy todir="./build/package" overwrite="true">
+                <filelist dir="." files="readme.txt" />
+                <fileset dir=".">
+                    <include name="*.php" />
+                </fileset>
+            </copy>
+
+            <echo level="verbose">Copying class files to package</echo>
+            <copy todir="./build/package/classes" overwrite="true">
+                <fileset dir="./classes">
+                    <include name="*.php" />
+                </fileset>
+            </copy>
+
+            <echo level="verbose">Copying language files</echo>
+            <copy todir="./build/package/languages" overwrite="true">
+                <fileset dir="./languages">
+                    <include name="*.mo" />
+                </fileset>
+            </copy>
+
+            <echo level="verbose">Copying template files</echo>
+            <copy todir="./build/package/templates" overwrite="true">
+                <fileset dir="./templates">
+                    <include name="**/*" />
+                </fileset>
+            </copy>
+
+            <echo level="verbose">Copying public assets</echo>
+            <copy todir="./build/package/public" overwrite="true">
+                <fileset dir="./public">
+                    <include name="**/*" />
+                </fileset>
+            </copy>
+
+            <echo level="verbose">Installing dependencies with composer</echo>
+            <copy todir="./build/package" overwrite="true">
+                <filelist dir="." files="composer.json composer.lock" />
+            </copy>
+            <exec command="composer install --no-dev --optimize-autoloader --no-interaction" dir="./build/package" checkreturn="true" />
+            <echo level="verbose">Cleaning up after composer install</echo>
+            <delete includeemptydirs="true" failonerror="true">
+                <fileset dir="./build/package">
+                    <include name="composer.*" />
+                    <include name="phpunit.bootstrap.php" />
+                </fileset>
+                <fileset dir="./build/package/vendor/launchkey/launchkey">
+                    <include name="*/**" />
+                    <exclude name="src/*/**" />
+                    <exclude name="LICENSE.txt" />
+                </fileset>
+                <fileset dir="./build/package/vendor/phpseclib/phpseclib">
+                    <include name="*/**" />
+                    <exclude name="phpseclib/*/**" />
+                    <exclude name="LICENSE" />
+                </fileset>
+                <fileset dir="./build/package/vendor/psr/log">
+                    <include name="*/**" />
+                    <exclude name="Psr/*/**" />
+                    <exclude name="LICENSE" />
+               </fileset>
+                <fileset dir="./build/package/vendor/guzzle/guzzle">
+                    <include name="*/**" />
+                    <exclude name="src/*/**" />
+                    <exclude name="LICENSE" />
+                </fileset>
+                <fileset dir="./build/package/vendor/symfony/event-dispatcher/Symfony/Component/EventDispatcher">
+                    <include name="*" />
+                    <exclude name="*.php" />
+                    <exclude name="LICENSE" />
+                    <include name="Tests/*/**" />
+                </fileset>
+            </delete>
+
+
+            <echo level="verbose">Creating deployment Zip file</echo>
+            <zip destfile="./build/launchkey.zip">
+                <fileset dir="./build/package/">
+                    <include name="*" />
+                    <include name="**/*" />
+                </fileset>
+            </zip>
+        </target>
+
+        <target name="clean" description="remove build directory and files">
+            <if>
+                <available file='./build' type='dir' />
+                <then>
+                    <delete dir="./build" includeemptydirs="true" failonerror="true" />
+                </then>
+            </if>
+        </target>
+
+        <target name="deploy" depends="build" description="Deploy to a local intallation of WordPress">
+            <if>
+                <isset property="wpRootDir"/>
+                <then>
+                    <echo level="verbose">WordPress root already set.  Not prompting for it.</echo>
+                </then>
+                <else>
+                    <input message="WordPress Installation Root Directory:" propertyname="wpRootDir" />
+                </else>
+            </if>
+            <if>
+                <available file='${wpRootDir}/wp-content/plugins' type='dir' />
+                <then>
+                    <if>
+                        <available file='${wpRootDir}/wp-content/plugins/launchkey' type='dir' />
+                        <then>
+                            <delete dir="${wpRootDir}/wp-content/plugins/launchkey" includeemptydirs="true" failonerror="true" />
+                        </then>
+                    </if>
+
+                    <mkdir dir="${wpRootDir}/wp-content/plugins/launchkey" />
+                    <copy todir="${wpRootDir}/wp-content/plugins/launchkey" overwrite="true">
+                        <fileset dir="./build/package/">
+                            <include name="*" />
+                            <include name="**/*" />
+                        </fileset>
+                    </copy>
+                </then>
+                <else>
+                    <fail message="Plugin directory ${wpRootDir}/wp-content/plugins does not exist" />
+                </else>
+            </if>
+        </target>
+
+        <target name="svn-credentials" description="Gather credentials for SVN access to the WordPress Plugin repository">
+            <if>
+                <isset property="svnUsername"/>
+                <then>
+                    <echo level="verbose">SVN Usename already set.  Not prompting for it.</echo>
+                </then>
+                <else>
+                    <input message="username:" propertyname="svnUsername" />
+                </else>
+            </if>
+            <if>
+                <isset property="svnPassword"/>
+                <then>
+                    <echo level="verbose">SVN Password already set.  Not prompting for it.</echo>
+                </then>
+                <else>
+                    <exec command="read -s -p &quot;password: &quot; password &amp;&amp; echo &quot;$password&quot; " outputProperty="svnPassword"/>
+                </else>
+            </if>
+        </target>
+</project>
