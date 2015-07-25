@@ -1,0 +1,52 @@
+{
+  "name": "launchkey/wordpress",
+  "description": "LaunchKey WordPress Plugin",
+  "type": "wordpress-plugin",
+  "keywords": [
+    "authentication",
+    "multi-factor",
+    "2fa",
+    "mfa",
+    "wordpress",
+    "launchkey",
+    "security"
+  ],
+  "homepage": "https://github.com/launchkey/launchkey-php",
+  "license": "GPLv2",
+  "authors": [
+    {
+      "name": "Adam Englander",
+      "email": "adam@launchkey.com",
+      "role": "developer"
+    }
+  ],
+  "support": {
+    "email": "support@launchkey.com",
+    "issues": "https://launchkey.desk.com/",
+    "wiki": "https://docs.launchkey.com/developer/cms/word-press/",
+    "source": "https://github.com/launchkey/launchkey-wordpress",
+    "irc": "irc://chat.freenode.net/launchkey"
+  },
+  "require": {
+    "launchkey/launchkey": "~1.1.0"
+  },
+  "require-dev": {
+    "phing/phing": "^2.10",
+    "phpunit/phpunit": "~4.6",
+    "phake/phake": "~2.0"
+  },
+  "config": {
+    "bin-dir": "bin"
+  },
+  "autoload": {
+    "classmap": ["classes/"]
+  },
+  "autoload-dev": {
+    "classmap": ["tests/"]
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "1.0.x-dev"
+    }
+  }
+}

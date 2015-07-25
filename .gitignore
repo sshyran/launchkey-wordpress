@@ -1,2 +1,6 @@
 .svn
 .idea
+/vendor/
+/build/
+phpunit.xml
+bin/*
