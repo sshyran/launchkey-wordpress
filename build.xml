@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="LaunchKey WordPress Plugin" default="build" description="">
 
-        <target name="prepare" description="Prepare build target for packaging">
+        <target name="build" description="Package the WordPress Plugin as ready for installation, deployment, or release">
             <echo level="verbose">Making package build directory</echo>
             <mkdir dir="./build/package" />
 
             <echo level="verbose">Making package build language files directory</echo>
             <mkdir dir="./build/package/languages" />
-        </target>
-
-        <target name="build" depends="prepare" description="Package the WordPress Plugin as ready for installation ">
             <echo level="verbose">Copying plugin root to package</echo>
             <copy todir="./build/package" overwrite="true">
                 <filelist dir="." files="readme.txt" />
@@ -95,7 +92,7 @@
             </zip>
         </target>
 
-        <target name="clean" description="remove build directory and files">
+        <target name="clean" description="Remove build directory and files">
             <if>
                 <available file='./build' type='dir' />
                 <then>
@@ -104,7 +101,7 @@
             </if>
         </target>
 
-        <target name="deploy" depends="build" description="Deploy to a local intallation of WordPress">
+        <target name="deploy" depends="build" description="Deploy to a local intallation of WordPress. Properties: wpRootDir=WordPress root directory">
             <if>
                 <isset property="wpRootDir"/>
                 <then>
@@ -134,27 +131,6 @@
                 </then>
                 <else>
                     <fail message="Plugin directory ${wpRootDir}/wp-content/plugins does not exist" />
-                </else>
-            </if>
-        </target>
-
-        <target name="svn-credentials" description="Gather credentials for SVN access to the WordPress Plugin repository">
-            <if>
-                <isset property="svnUsername"/>
-                <then>
-                    <echo level="verbose">SVN Usename already set.  Not prompting for it.</echo>
-                </then>
-                <else>
-                    <input message="username:" propertyname="svnUsername" />
-                </else>
-            </if>
-            <if>
-                <isset property="svnPassword"/>
-                <then>
-                    <echo level="verbose">SVN Password already set.  Not prompting for it.</echo>
-                </then>
-                <else>
-                    <exec command="read -s -p &quot;password: &quot; password &amp;&amp; echo &quot;$password&quot; " outputProperty="svnPassword"/>
                 </else>
             </if>
         </target>

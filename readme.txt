@@ -57,7 +57,7 @@ Full documentation: https://docs.launchkey.com/developer/cms/word-press/
 
 3. Complete the steps in the wizard
 
-Once all of et steps in the
+Once all of et steps in the wizard are completed, you are ready to use the LaunchKey WordPress plugin.
 
 == Frequently Asked Questions ==
 
