@@ -144,15 +144,16 @@ Development and contribution repo for http://wordpress.org/plugins/launchkey/
         ```bash
         rm -r build/launchkey-svn/assets
         cp -r assets build/launchkey-svn/
-        
+        ```
+    
     5.  Commit your changes.
-        
+    
         ```bash
         svn commit build/launchkey-svn
         ```
     
     6.  Test the automatic upgrade
-        
+    
         1. Install and configure the previous version of the plugin
         2. Apply the available update from the plugins page
         3. Verify the plugin is working properly
