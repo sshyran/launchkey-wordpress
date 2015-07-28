@@ -87,14 +87,22 @@ Development and contribution repo for http://wordpress.org/plugins/launchkey/
     svn checkout https://plugins.svn.wordpress.org/launchkey build/launchkey-svn
     ```
 
-4.  Replace the trunk directory contents ofthe Subversion checkout with the `build/package` directory
+4.  Replace the trunk directory contents of the Subversion checkout with the `build/package` directory
     
     ```bash
     rm -r build/launchkey-svn/trunk
     cp -r build/package build/launchkey-svn/trunk
     ```
 
-5.  Commit your changes to trunk and include the changes.
+5.  Resolve added and removed files in the `build/launchkey-svn/trunk` directory
+    
+    ```bash
+    svn status build/launchkey-svn
+    svn add build/launchkey-svn/trunk/missing.file build/launchkey-svn/trunk/other-missing.file
+    svn rm build/launchkey-svn/trunk/removed.file build/launchkey-svn/trunk/other-removed.file
+    ```
+
+6.  Commit your changes to trunk and include the changes.
     
     Be sure to add the changes recorded in the changelog to the commit message.
     
@@ -102,7 +110,7 @@ Development and contribution repo for http://wordpress.org/plugins/launchkey/
     svn commit build/launchkey-svn
     ```
 
-6.  Tag your release
+7.  Tag your release
     
     *x.x.x in the example is your release version.  We use [Semantic versioning](http://semver.org/) for the project.*
     
@@ -111,12 +119,12 @@ Development and contribution repo for http://wordpress.org/plugins/launchkey/
     ```
 
 
-7.  Test your release.
+8.  Test your release.
   
     The new release will be available on the plugin page for download shortly after the tagging operation is complete.
     Install that version and test that it is working properly.
 
-8.  Make the new release the current stable version.
+9.  Make the new release the current stable version.
 
     1.  Update the readme.txt
         * Update the "Stable tag" value in the readme.txt to your new version: `Stable tag: x.x.x`
