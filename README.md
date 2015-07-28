@@ -1,4 +1,4 @@
-# LaunchKey WordPress Plugin 
+# LaunchKey WordPress Plugin [![Build Status](https://travis-ci.org/LaunchKey/launchkey-wordpress.svg?branch=master)](https://travis-ci.org/LaunchKey/launchkey-wordpress)
 
 Development and contribution repo for http://wordpress.org/plugins/launchkey/
 
