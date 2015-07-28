@@ -19,3 +19,5 @@ notifications:
   email:
     recipients:
     - secure: N2CY99C408tdirbH75NBl48ubw7sWTirCOiuUHoCDSdM9TFga/Brz2Ux9AxxhAJ/gy93lt/MFSdIwSBawk928/2H2EXpnsv97IFyH6/GwB6DHtvxYc1lqJsW31jbnjLpQLoUjnedpTNk/GLnMqZ0KDg3vmMKNfRRC0xcMrR+g8Q=
+
+sudo: false
