@@ -74,6 +74,9 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
+= 1.0.1 =
+* Cosmetic changes to configuration wizard
+
 = 1.0.0 =
 * Tested up to 4.2.2
 * Split up plugin file and code
