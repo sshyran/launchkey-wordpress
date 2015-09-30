@@ -74,11 +74,15 @@
                     <exclude name="src/*/**" />
                     <exclude name="LICENSE" />
                 </fileset>
-                <fileset dir="./build/package/vendor/symfony/event-dispatcher/Symfony/Component/EventDispatcher">
-                    <include name="*" />
-                    <exclude name="*.php" />
+                <fileset dir="./build/package/vendor/robrichards/xmlseclibs">
+                    <include name="*/**" />
+                    <exclude name="src/*/**" />
                     <exclude name="LICENSE" />
-                    <include name="Tests/*/**" />
+                </fileset>
+                <fileset dir="./build/package/vendor/simplesamlphp/saml2">
+                    <include name="*/**" />
+                    <exclude name="src/*/**" />
+                    <exclude name="LICENSE" />
                 </fileset>
             </delete>
 

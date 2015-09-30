@@ -25,7 +25,7 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 	private $template;
 
 	/**
-	 * @var striong
+	 * @var string
 	 */
 	private $language_domain;
 
@@ -47,14 +47,30 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 	}
 
 	public function test_create_admin_page_echos_form_correctly() {
-		$this->options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ]       = 'Expected Rocket Key';
-		$this->options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ] = 'Expected App Display Name';
-		$this->options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ]       = true;
-		$expected_context                                               = array(
-			'rocket_key'         => 'Expected Rocket Key',
-			'app_display_name'   => 'Expected App Display Name',
-			'callback_url'       => sprintf( 'AdminURL [admin-ajax.php?action=%s]', LaunchKey_WP_Native_Client::CALLBACK_AJAX_ACTION ),
-			'ssl_verify_checked' => 'checked="checked"'
+		$this->options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] = LaunchKey_WP_Implementation_Type::NATIVE;
+		$this->options[LaunchKey_WP_Options::OPTION_ROCKET_KEY] = 'Expected Rocket Key';
+		$this->options[LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME] = 'Expected App Display Name';
+		$this->options[LaunchKey_WP_Options::OPTION_SSL_VERIFY] = true;
+		$expected_context = array(
+			'rocket_key' => 'Expected Rocket Key',
+			'app_display_name' => 'Expected App Display Name',
+			'callback_url' => sprintf( 'AdminURL [admin-ajax.php?action=%s]', LaunchKey_WP_Native_Client::CALLBACK_AJAX_ACTION ),
+			'ssl_verify_checked' => 'checked="checked"',
+			'domain' => 'Parsed URL',
+			'mcrypt_pass_fail' => 'fail',
+			'openssl_pass_fail' => 'fail',
+			'curl_pass_fail' => 'fail',
+			'dom_pass_fail' => 'fail',
+			'show_sso_next' => 'hide',
+			'show_sso_back' => 'show',
+			'wp_username' => 'login',
+			'sso_entity_id' => null,
+			'sso_public_key' => null,
+			'sso_login_url' => null,
+			'sso_logout_url' => null,
+			'sso_error_url' => null,
+			'settings-sso-visible' => 'hide',
+			'settings-standard-visible' => null,
 		);
 		$this->admin->create_launchkey_settings_page();
 		Phake::verify( $this->template )->render_template( 'admin/settings', Phake::capture( $actual_context ) );
@@ -164,7 +180,7 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 
 	protected function setUp() {
 		Phake::initAnnotations( $this );
-		$this->options = array();
+		$this->options = LaunchKey_WP_Options::get_defaults();
 		Phake::when( $this->facade )->settings_fields( Phake::anyParameters() )->thenReturn( 'settings_fields response' );
 		Phake::when( $this->facade )->do_settings_sections( Phake::anyParameters() )->thenReturn( 'do_settings_sections response' );
 		Phake::when( $this->facade )->submit_button( Phake::anyParameters() )->thenReturn( 'submit_button response' );
@@ -179,8 +195,11 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 			return sprintf( 'TRANSLATED [%s]', $parameters[0] );
 		} );
 		Phake::when( $this->facade )->admin_url( Phake::anyParameters() )->thenReturnCallback( function ( $method, $parameters ) {
-			return sprintf( 'AdminURL [%s]', $parameters[0] );
+			return sprintf( 'AdminURL [%s]', isset( $parameters[0] ) ? $parameters[0] : "ROOT" );
 		} );
+		Phake::when( $this->facade )->parse_url( Phake::anyParameters() )->thenReturn( "Parsed URL" );
+
+		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( (object) array( 'user_login' => "login" ) );
 		$this->admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain );
 	}
 

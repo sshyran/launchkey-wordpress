@@ -28,7 +28,8 @@
     "irc": "irc://chat.freenode.net/launchkey"
   },
   "require": {
-    "launchkey/launchkey": "~1.1.0"
+    "launchkey/launchkey": "~1.1.0",
+    "simplesamlphp/saml2": "~1.6.1"
   },
   "require-dev": {
     "phing/phing": "^2.10",

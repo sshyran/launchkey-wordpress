@@ -14,6 +14,7 @@ class LaunchKey_WP_Implementation_Type_Test extends PHPUnit_Framework_TestCase {
 			array('oauth', true),
 			array('native', true),
 			array('white-label', true),
+			array('sso', true),
 		);
 	}
 
@@ -32,6 +33,7 @@ class LaunchKey_WP_Implementation_Type_Test extends PHPUnit_Framework_TestCase {
 			array('oauth', false),
 			array('native', true),
 			array('white-label', true),
+			array('sso', true),
 		);
 	}
 
