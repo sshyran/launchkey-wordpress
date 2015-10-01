@@ -84,7 +84,12 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
-= 2.0.0 =
+= 1.1.1 =
+* Fix changelog versions
+* Settings page show correct POST URL
+* Settings page "Finish" goes to correct page
+
+= 1.1.0 =
 * Tested up to 4.3.1
 * Added LaunchKey SSO integration with setup wizard
 * Updated wizard and plugin page to better inform users how to pair other users' WordPress account with LaunchKey account
