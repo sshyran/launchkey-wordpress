@@ -55,6 +55,7 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 			'rocket_key' => 'Expected Rocket Key',
 			'app_display_name' => 'Expected App Display Name',
 			'callback_url' => sprintf( 'AdminURL [admin-ajax.php?action=%s]', LaunchKey_WP_Native_Client::CALLBACK_AJAX_ACTION ),
+			'sso_post_url' => 'LoginURL [ROOT]',
 			'ssl_verify_checked' => 'checked="checked"',
 			'domain' => 'Parsed URL',
 			'mcrypt_pass_fail' => 'fail',
@@ -196,6 +197,9 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 		} );
 		Phake::when( $this->facade )->admin_url( Phake::anyParameters() )->thenReturnCallback( function ( $method, $parameters ) {
 			return sprintf( 'AdminURL [%s]', isset( $parameters[0] ) ? $parameters[0] : "ROOT" );
+		} );
+		Phake::when( $this->facade )->wp_login_url( Phake::anyParameters() )->thenReturnCallback( function ( $method, $parameters ) {
+			return sprintf( 'LoginURL [%s]', isset( $parameters[0] ) ? $parameters[0] : "ROOT" );
 		} );
 		Phake::when( $this->facade )->parse_url( Phake::anyParameters() )->thenReturn( "Parsed URL" );
 
