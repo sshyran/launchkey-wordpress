@@ -868,7 +868,8 @@
                    name="sso_idp">
 
             <p class="step-headline">
-                <span class="lk-big-number">3.</span> Enter the entity ID you specified in the initial :
+                <span class="lk-big-number">3.</span> Enter the <em>Entity ID</em> you specified in <em>Step 4</em> of
+                of the <a href="#wizard-sso-6">Setup SSO in LaunchKey</a> section of the wizard.
             </p>
             <label class="lk-label" for="wizard_files_sso_idp">Entity ID</label>
             <input class="lk-margin-left-indent" type="text" id="wizard_sso_entity_id"
@@ -999,7 +1000,7 @@
             configuration page.</p>
     </div>
     <div class="lk-content">
-        <a class="lk-next" href="#settings" onclick="document.location.reload(true)">Finish</a>
+        <a class="lk-next" onclick="window.location.hash='settings';window.location.reload(true);return false;">Finish</a>
     </div>
 </div>
 
