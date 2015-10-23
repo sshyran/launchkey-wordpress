@@ -84,6 +84,9 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
+= 1.1.3 =
+* Fix content in SSO wizard
+
 = 1.1.2 =
 * Fix typos in SSO wizard
 * Fix finish redirect for SSO wizard in Safari
