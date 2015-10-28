@@ -74,6 +74,7 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	private $white_label_user;
 
 	public function test_does_nothing_when_no_nonce() {
+		unset( $_REQUEST['nonce'] );
 		$this->wizard->verify_configuration_callback();
 		Phake::verifyNoInteraction( $this->facade );
 	}
@@ -85,34 +86,37 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_does_nothing_else_when_nonce_is_invalid() {
-		$_REQUEST['nonce'] = 'not empty';
 		Phake::when( $this->facade )->wp_verify_nonce( Phake::anyParameters() )->thenReturn( false );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->wp_verify_nonce( Phake::anyParameters() );
 		Phake::verifyNoFurtherInteraction( $this->facade );
 	}
 
+	public function test_does_nothing_else_when_user_cannot_manage_options() {
+		Phake::when( $this->facade )->current_user_can( 'manage_options' )->thenReturn( false );
+		$this->wizard->verify_configuration_callback();
+		Phake::verify( $this->facade )->current_user_can( 'manage_options' );
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
 	public function test_authorizes_username_when_in_post() {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['username']         = 'expected';
-		$_REQUEST['nonce']         = 'not empty';
+		$_POST['username'] = 'expected';
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->auth )->authorize( 'expected' );
 	}
 
 	public function test_uses_current_user_login_name_when_username_not_in_post() {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_REQUEST['nonce']         = 'not empty';
-		$this->user->user_login    = 'expected';
+		$this->user->user_login = 'expected';
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->auth )->authorize( 'expected' );
 	}
 
 	public function test_updates_user_meta_when_authorizing_succeeds() {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['username']         = 'expected';
-		$_REQUEST['nonce']         = 'not empty';
-		$this->user->ID            = $user_id = 999;
+		$_POST['username'] = 'expected';
+		$this->user->ID = $user_id = 999;
 		Phake::when( $this->auth_request )->getAuthRequestId()->thenReturn( $auth_request_id = 'auth request ID' );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->update_user_meta( $user_id, 'launchkey_username', 'expected' );
@@ -122,8 +126,7 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 
 	public function test_does_not_update_user_meta_on_authorize_exception() {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['username']         = 'expected';
-		$_REQUEST['nonce']         = 'not empty';
+		$_POST['username'] = 'expected';
 		Phake::when( $this->auth )->authorize( Phake::anyParameters() )->thenThrow( new Exception() );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade, Phake::never() )->update_user_meta( Phake::anyParameters() );
@@ -131,8 +134,7 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 
 	public function test_sends_json_response_on_authorize_exception() {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['username']         = 'expected';
-		$_REQUEST['nonce']         = 'not empty';
+		$_POST['username'] = 'expected';
 		Phake::when( $this->auth )->authorize( Phake::anyParameters() )->thenThrow( new Exception( 'exception', 5555 ) );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->wp_send_json( Phake::capture( $response ) );
@@ -161,7 +163,6 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_sends_json_response_on_non_auth_with_null_db_response() {
-		$_REQUEST['nonce'] = 'not empty';
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->wp_send_json( Phake::capture( $response ) );
 
@@ -189,7 +190,6 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_sends_json_response_on_non_auth_with_true_db_response_has_completed_true() {
-		$_REQUEST['nonce'] = 'not empty';
 		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 'true' );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->wp_send_json( Phake::capture( $response ) );
@@ -199,7 +199,6 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_sends_json_response_on_non_auth_with_false_db_response_has_completed_true() {
-		$_REQUEST['nonce'] = 'not empty';
 		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 'false' );
 		$this->wizard->verify_configuration_callback();
 		Phake::verify( $this->facade )->wp_send_json( Phake::capture( $response ) );
@@ -208,9 +207,8 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_when_verify_action_is_pair_white_label_create_user_is_called_and_json_response_sent() {
-		$_REQUEST['nonce']         = 'not empty';
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['verify_action']    = 'pair';
+		$_POST['verify_action'] = 'pair';
 		Phake::when( $this->white_label_user )->getCode()->thenReturn( 'Manual Code' );
 		Phake::when( $this->white_label_user )->getQrCodeUrl()->thenReturn( 'QR Code URL' );
 		$this->user->user_login = $expected_login = 'expected-login';
@@ -252,10 +250,9 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	public function test_verify_action_create_user_error_sends_json_response() {
-		$_REQUEST['nonce']         = 'not empty';
 		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_POST['verify_action']    = 'pair';
-		$this->user->user_login    = $expected_login = 'expected-login';
+		$_POST['verify_action'] = 'pair';
+		$this->user->user_login = $expected_login = 'expected-login';
 		Phake::when( $this->white_label_service )
 		     ->createUser( Phake::anyParameters() )
 		     ->thenThrow( new Exception( 'message', 999 ) );
@@ -288,14 +285,14 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	protected function setUp() {
-		$that               = $this;
+		$that = $this;
 		$this->options_data = array(
 			LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::NATIVE,
-			LaunchKey_WP_Options::OPTION_ROCKET_KEY          => 12345,
-			LaunchKey_WP_Options::OPTION_SECRET_KEY          => 'Secret Key',
-			LaunchKey_WP_Options::OPTION_PRIVATE_KEY         => 'Private Key',
-			LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME    => 'LaunchKey',
-			LaunchKey_WP_Options::OPTION_SSL_VERIFY          => true,
+			LaunchKey_WP_Options::OPTION_ROCKET_KEY => 12345,
+			LaunchKey_WP_Options::OPTION_SECRET_KEY => 'Secret Key',
+			LaunchKey_WP_Options::OPTION_PRIVATE_KEY => 'Private Key',
+			LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME => 'LaunchKey',
+			LaunchKey_WP_Options::OPTION_SSL_VERIFY => true,
 		);
 
 		Phake::initAnnotations( $this );
@@ -325,8 +322,11 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 		     ->createUser( Phake::anyParameters() )
 		     ->thenReturn( $this->white_label_user );
 
+		Phake::when( $this->facade )->current_user_can( Phake::anyParameters() )->thenReturn( true );
+
 		$_SERVER['REQUEST_METHOD'] = 'GET';
-		$_POST['action']           = null;
+		$_POST['action'] = null;
+		$_REQUEST['nonce'] = 'not empty';
 
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
@@ -336,25 +336,25 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	}
 
 	protected function tearDown() {
-		$this->wizard       = null;
-		$this->facade       = null;
-		$this->admin        = null;
-		$this->client       = null;
-		$this->user         = null;
-		$this->wpdb         = null;
-		$this->auth         = null;
+		$this->wizard = null;
+		$this->facade = null;
+		$this->admin = null;
+		$this->client = null;
+		$this->user = null;
+		$this->wpdb = null;
+		$this->auth = null;
 		$this->auth_request = null;
 
 		foreach ( array_keys( $_SERVER ) as $key ) {
-			unset( $_SERVER[ $key ] );
+			unset( $_SERVER[$key] );
 		}
 
 		foreach ( array_keys( $_POST ) as $key ) {
-			unset( $_POST[ $key ] );
+			unset( $_POST[$key] );
 		}
 
 		foreach ( array_keys( $_GET ) as $key ) {
-			unset( $_GET[ $key ] );
+			unset( $_GET[$key] );
 		}
 	}
 }

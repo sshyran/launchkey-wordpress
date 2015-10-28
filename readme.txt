@@ -84,6 +84,9 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
+= 1.0.6 =
+* Fix escalation of privilege error found via bug bounty.
+
 = 1.0.5 =
 * Detach and append password section of login form instead of hide and show to prevent auto-fill by browser and password managers
 * Fix setup wizard verify issue for older jQuery versions in WordPress 3.x that would not complete verification
