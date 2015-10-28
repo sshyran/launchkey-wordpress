@@ -107,7 +107,7 @@ function launchkey_plugin_init() {
 		} else {
 			throw new RuntimeException( 'Unable to upgrade LaunchKey meta-data.  Failed to save setting ' . LaunchKey_WP_Admin::OPTION_KEY );
 		}
-	} elseif ( !get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
+	} elseif ( ! get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
 		add_option( LaunchKey_WP_Admin::OPTION_KEY, array() );
 	}
 
@@ -199,7 +199,7 @@ function launchkey_plugin_init() {
 		 *
 		 * @since 1.0.0
 		 */
-		if ( !has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
+		if ( ! has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
 			add_action( 'login_enqueue_scripts', 'wp_print_styles', 11 );
 		}
 	}

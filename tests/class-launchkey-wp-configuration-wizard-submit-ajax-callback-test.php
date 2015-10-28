@@ -38,6 +38,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	private $wizard;
 
 	public function test_does_nothing_when_no_nonce() {
+		unset( $_POST['nonce'] );
 		$this->wizard->wizard_submit_ajax();
 		Phake::verifyNoInteraction( $this->facade );
 	}
@@ -49,21 +50,25 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	}
 
 	public function test_does_nothing_but_create_nonce_when_nonce_is_invalid() {
-		$_POST['nonce'] = 'not empty';
 		Phake::when( $this->facade )->wp_verify_nonce( Phake::anyParameters() )->thenReturn( false );
 		$this->wizard->wizard_submit_ajax();
 		Phake::verify( $this->facade )->wp_verify_nonce( Phake::anyParameters() );
 		Phake::verifyNoFurtherInteraction( $this->facade );
 	}
 
+	public function test_does_nothing_when_user_cannot_manage_options() {
+		Phake::when( $this->facade )->current_user_can( 'manage_options' )->thenReturn( false );
+		$this->wizard->wizard_submit_ajax();
+		Phake::verify( $this->facade )->current_user_can( 'manage_options' );
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
 	public function test_checks_option() {
-		$_POST['nonce'] = 'not empty';
 		$this->wizard->wizard_submit_ajax();
 		Phake::verify( $this->admin )->check_option( $_POST );
 	}
 
 	public function test_updates_option_when_check_option_returns_no_errors() {
-		$_POST['nonce']  = 'not empty';
 		$expected_option = array( 'expected' => 'option' );
 		Phake::when( $this->admin )->check_option( Phake::anyParameters() )->thenReturn( array(
 			$expected_option,
@@ -74,7 +79,6 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	}
 
 	public function test_does_not_update_option_when_check_option_returns_errors() {
-		$_POST['nonce'] = 'not empty';
 		Phake::when( $this->admin )->check_option( Phake::anyParameters() )->thenReturn( array(
 			array(),
 			array( 'error' )
@@ -85,14 +89,14 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 
 
 	protected function setUp() {
-		$that               = $this;
+		$that = $this;
 		$this->options_data = array(
 			LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::NATIVE,
-			LaunchKey_WP_Options::OPTION_ROCKET_KEY          => 12345,
-			LaunchKey_WP_Options::OPTION_SECRET_KEY          => 'Secret Key',
-			LaunchKey_WP_Options::OPTION_PRIVATE_KEY         => 'Private Key',
-			LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME    => 'LaunchKey',
-			LaunchKey_WP_Options::OPTION_SSL_VERIFY          => true,
+			LaunchKey_WP_Options::OPTION_ROCKET_KEY => 12345,
+			LaunchKey_WP_Options::OPTION_SECRET_KEY => 'Secret Key',
+			LaunchKey_WP_Options::OPTION_PRIVATE_KEY => 'Private Key',
+			LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME => 'LaunchKey',
+			LaunchKey_WP_Options::OPTION_SSL_VERIFY => true,
 		);
 
 
@@ -114,8 +118,11 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 			return sprintf( 'TRANSLATED [%s]', $parameters[0] );
 		} );
 
+		Phake::when( $this->facade )->current_user_can( Phake::anyParameters() )->thenReturn( true );
+
 		$_SERVER['REQUEST_METHOD'] = 'GET';
-		$_POST['action']           = null;
+		$_POST['action'] = null;
+		$_POST['nonce'] = 'expected';
 
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
@@ -127,19 +134,19 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	protected function tearDown() {
 		$this->wizard = null;
 		$this->facade = null;
-		$this->admin  = null;
+		$this->admin = null;
 		$this->client = null;
 
 		foreach ( array_keys( $_SERVER ) as $key ) {
-			unset( $_SERVER[ $key ] );
+			unset( $_SERVER[$key] );
 		}
 
 		foreach ( array_keys( $_POST ) as $key ) {
-			unset( $_POST[ $key ] );
+			unset( $_POST[$key] );
 		}
 
 		foreach ( array_keys( $_GET ) as $key ) {
-			unset( $_GET[ $key ] );
+			unset( $_GET[$key] );
 		}
 	}
 }

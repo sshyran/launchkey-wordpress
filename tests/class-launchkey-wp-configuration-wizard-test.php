@@ -48,6 +48,13 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 		) );
 	}
 
+	public function test_enqueue_verifier_native_script_does_not_enqueue_script_if_user_cannot_manage_options() {
+		Phake::when( $this->facade )->current_user_can( 'manage_options' )->thenReturn( false );
+		$this->wizard->enqueue_verify_configuration_script();
+		Phake::verify( $this->facade )->current_user_can( 'manage_options' );
+		Phake::verify( $this->facade, Phake::never() )->wp_enqueue_script( Phake::anyParameters() );
+	}
+
 	public function test_enqueue_verifier_native_script_enqueues_script() {
 		$this->wizard->enqueue_verify_configuration_script();
 		Phake::verify( $this->facade )->wp_enqueue_script(
@@ -69,16 +76,16 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_verifier_native_script_localizes_script() {
-		$this->option_data[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::OAUTH;
+		$this->option_data[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] = LaunchKey_WP_Implementation_Type::OAUTH;
 		$this->wizard->enqueue_verify_configuration_script();
 		Phake::verify( $this->facade )->wp_localize_script(
 			'launchkey-config-verifier-native-script',
 			'launchkey_verifier_config',
 			array(
-				'url'                 => 'Admin URL',
+				'url' => 'Admin URL',
 				'implementation_type' => LaunchKey_WP_Implementation_Type::OAUTH,
-				'nonce'               => 'Nonce',
-				'is_configured'       => false,
+				'nonce' => 'Nonce',
+				'is_configured' => false,
 			)
 		);
 	}
@@ -159,16 +166,16 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_wizard_script_localizes_script() {
-		$this->option_data[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::OAUTH;
+		$this->option_data[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] = LaunchKey_WP_Implementation_Type::OAUTH;
 		$this->wizard->enqueue_wizard_script();
 		Phake::verify( $this->facade )->wp_localize_script(
 			'launchkey-wizard-script',
 			'launchkey_wizard_config',
 			array(
-				'nonce'               => 'Nonce',
-				'is_configured'       => false,
+				'nonce' => 'Nonce',
+				'is_configured' => false,
 				'implementation_type' => LaunchKey_WP_Implementation_Type::OAUTH,
-				'url'                 => 'Admin URL'
+				'url' => 'Admin URL'
 			)
 		);
 	}
@@ -228,6 +235,8 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 
 		Phake::when( $this->facade )->wp_create_nonce( Phake::anyParameters() )->thenReturn( 'Nonce' );
 
+		Phake::when( $this->facade )->current_user_can( Phake::anyParameters() )->thenReturn( true );
+
 		$this->option_data = array( LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::NATIVE );
 
 		Phake::when( $this->facade )->get_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that ) {
@@ -236,9 +245,9 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	protected function tearDown() {
-		$this->wizard   = null;
-		$this->facade   = null;
-		$this->admin    = null;
-		$this->client   = null;
+		$this->wizard = null;
+		$this->facade = null;
+		$this->admin = null;
+		$this->client = null;
 	}
 }
