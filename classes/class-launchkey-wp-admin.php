@@ -164,12 +164,9 @@ class LaunchKey_WP_Admin {
 		// If we are on a relevant page to the plugin and it's not configured, show the activate banner
 		if ( in_array( $hook_suffix, array( 'plugins.php', 'users.php', 'profile.php' ) ) &&
 		     (
-			     (
-				     LaunchKey_WP_Implementation_Type::SSO === $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE]
-				     && empty( $options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID] )
-			     )
-			     || (
-				     LaunchKey_WP_Implementation_Type::SSO !== $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE]
+			     ( LaunchKey_WP_Implementation_Type::SSO === $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE]
+				     && empty( $options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID] ) )
+			     || ( LaunchKey_WP_Implementation_Type::SSO !== $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE]
 				     && empty( $options[LaunchKey_WP_Options::OPTION_SECRET_KEY] )
 			     )
 		     )
@@ -222,13 +219,6 @@ class LaunchKey_WP_Admin {
 		$options = $this->wp_facade->get_option( static::OPTION_KEY );
 
 		return $options;
-	}
-
-	/**
-	 * @return string
-	 */
-	private function get_config_wizard_url() {
-		return $this->wp_facade->admin_url( 'tools.php?page=launchkey-config-wizard' );
 	}
 
 	/**

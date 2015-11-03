@@ -151,6 +151,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		// Send it off using the HTTP-Redirect binding
 		$binding = new SAML2_HTTPRedirect();
 		$binding->setDestination( $this->login_url );
+		$options = $this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 
 		$this->wp_facade->_echo( $this->template->render_template( 'launchkey-form', array(
 			'class' => $class,
@@ -158,7 +159,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 			'style' => $style,
 			'login_url' => $binding->getRedirectURL( $request ),
 			'login_text' => 'Log in with',
-			'login_with_app_name' => 'LaunchKey',
+			'login_with_app_name' => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ],
 			'size' => in_array( $this->wp_facade->get_locale(), array(
 				'fr_FR',
 				'es_ES'
@@ -179,9 +180,9 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	 */
 	public function authenticate( $user, $username, $password ) {
 		if ( empty( $user ) && empty( $username ) && empty( $password ) && !empty( $_REQUEST['SAMLResponse'] ) ) {
-			$response_element = SAML2_DOMDocumentFactory::fromString( base64_decode( $_REQUEST['SAMLResponse'] ) )->documentElement;
-			$signature_info = SAML2_Utils::validateElement( $response_element );
 			try {
+				$response_element = SAML2_DOMDocumentFactory::fromString( base64_decode( $_REQUEST['SAMLResponse'] ) )->documentElement;
+				$signature_info = SAML2_Utils::validateElement( $response_element );
 				SAML2_Utils::validateSignature( $signature_info, $this->security_key );
 				$response = SAML2_StatusResponse::fromXML( $response_element );
 				/** @var SAML2_Assertion[] $assertions */
@@ -209,7 +210,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 					$user_id = $this->wp_facade->wp_insert_user( $user_data );
 					// Unset the password - wp_insert_user always generates a hash - it's misleading
 					$this->wp_facade->wp_update_user( array( 'ID' => $user_id, 'user_pass' => '' ) );
-					$user = new WP_User($user_id);
+					$user = new WP_User( $user_id );
 				}
 
 				// Set the SSO session so we know we are logged in via SSSO
@@ -217,7 +218,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 
 			} catch ( Exception $e ) {
 				$this->wp_facade->wp_redirect( $this->error_url );
-				exit;
+				$this->wp_facade->exit();
 			};
 			return $user;
 		}
@@ -236,13 +237,13 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', null );
 				// Redirect to SSO logout
 				$this->wp_facade->wp_redirect( $this->logout_url );
-				exit;
+				$this->wp_facade->exit();
 			}
 		}
 	}
 
 	private function translate_role( $role ) {
 		static $role_synonyms = array( "admin" => "administrator" );
-		return isset( $role_synonyms[ $role ] ) ? $role_synonyms[ $role ] : $role;
+		return isset( $role_synonyms[$role] ) ? $role_synonyms[$role] : $role;
 	}
 }

@@ -196,14 +196,10 @@ class LaunchKey_WP_Configuration_Wizard {
 	}
 
 	private function is_plugin_configured( $options ) {
-		$is_configured = (
-                 $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] === LaunchKey_WP_Implementation_Type::SSO
-                 && ! empty( $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ] )
-             )
-			 || (
-                 $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] !== LaunchKey_WP_Implementation_Type::SSO
-                 && ! empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] )
-             );
+		$is_configured = ( $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] === LaunchKey_WP_Implementation_Type::SSO
+		                   && !empty( $options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID] ) )
+		                 || ( $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] !== LaunchKey_WP_Implementation_Type::SSO
+		                      && !empty( $options[LaunchKey_WP_Options::OPTION_SECRET_KEY] ) );
 
 		return $is_configured;
 	}

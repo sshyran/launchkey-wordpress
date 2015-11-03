@@ -102,25 +102,25 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 					'nonce'            => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
 				)
 			),
-			'White Label' => array(
-				LaunchKey_WP_Implementation_Type::WHITE_LABEL,
-				'personal-options/white-label',
-				array(
-					'app_display_name'    => 'App Display Name',
-					'nonce'               => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
-					'pair_uri'            => 'AdminURL/admin-ajax.php?action=' . LaunchKey_WP_Native_Client::WHITE_LABEL_PAIR_ACTION,
-					'paired'              => 'false',
-					'has_password'        => 'true',
-					'password_remove_uri' => 'AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce=' . LaunchKey_WP_User_Profile::NONCE_KEY . '_value'
+				'White Label' => array(
+						LaunchKey_WP_Implementation_Type::WHITE_LABEL,
+						'personal-options/white-label',
+						array(
+								'app_display_name'    => 'App Display Name',
+								'nonce'               => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
+								'pair_uri'            => 'AdminURL/admin-ajax.php?action=' . LaunchKey_WP_Native_Client::WHITE_LABEL_PAIR_ACTION,
+								'paired'              => 'false',
+								'has_password'        => 'true',
+								'password_remove_uri' => 'AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce=' . LaunchKey_WP_User_Profile::NONCE_KEY . '_value'
+						)
 				)
-			)
 		);
 	}
 
 	/**
 	 * @dataProvider provider_unpaired_type_template_matrix
 	 */
-	public function test_when_no_launchkey_meta_data_unpaired_template_shown_with_the_correct_context( $implementation_type, $expected_template, $expected_context ) {
+	public function test_non_sso_when_no_launchkey_meta_data_unpaired_template_shown_with_the_correct_context( $implementation_type, $expected_template, $expected_context ) {
 		$this->options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ]          = 12345;
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = $implementation_type;
 		Phake::when( $this->facade )->get_user_meta( Phake::anyParameters() )->thenReturn( array() );
@@ -132,7 +132,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
+	public function test_non_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
 		$expected_nonce = LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
 		$this->client->launchkey_personal_options( $this->user );
 		Phake::verify( $this->template )->render_template( 'personal-options/paired-with-password', Phake::capture( $actual_context ) );
@@ -142,9 +142,39 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		Phake::verify( $this->facade )->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
 
 		$expected_context = array(
-			'unpair_uri'          => "AdminURL/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}",
-			'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
-			'app_display_name'    => 'App Display Name',
+				'unpair_uri'          => "AdminURL/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}",
+				'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
+				'app_display_name'    => 'App Display Name',
+		);
+		$this->assertEquals( $expected_context, $actual_context );
+	}
+
+	public function test_sso_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context() {
+		$this->user->ID        = 1;
+		$this->user->user_pass = null;
+		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
+		$this->client->launchkey_personal_options( $this->user );
+		Phake::verify( $this->template )->render_template( 'personal-options/sso-without-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/sso-without-password]' );
+
+		$expected_context = array(
+				'app_display_name' => 'App Display Name',
+		);
+		$this->assertEquals( $expected_context, $actual_context );
+	}
+
+	public function test_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
+		$expected_nonce = LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
+		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
+		$this->client->launchkey_personal_options( $this->user );
+		Phake::verify( $this->template )->render_template( 'personal-options/sso-with-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/sso-with-password]' );
+		Phake::verify( $this->facade )->wp_create_nonce( LaunchKey_WP_User_Profile::NONCE_KEY );
+		Phake::verify( $this->facade )->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
+
+		$expected_context = array(
+				'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
+				'app_display_name'    => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
 	}
@@ -157,7 +187,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/paired-without-password]' );
 
 		$expected_context = array(
-			'app_display_name' => 'App Display Name',
+				'app_display_name' => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
 	}

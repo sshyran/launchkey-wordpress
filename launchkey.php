@@ -3,7 +3,7 @@
   Plugin Name: LaunchKey
   Plugin URI: https://wordpress.org/plugins/launchkey/
   Description:  LaunchKey eliminates the need and liability of passwords by letting you log in and out of WordPress with your smartphone or tablet.
-  Version: 1.1.3
+  Version: 1.1.4
   Author: LaunchKey, Inc.
   Text Domain: launchkey
   Author URI: https://launchkey.com
@@ -236,7 +236,7 @@ function launchkey_plugin_init() {
 			'launchkey-style',
 			plugins_url( '/public/launchkey.css', __FILE__ ),
 			array(),
-			'1.0.0',
+			'1.0.1',
 			false
 		);
 	} );

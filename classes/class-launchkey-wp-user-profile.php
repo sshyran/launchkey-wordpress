@@ -86,7 +86,6 @@ class LaunchKey_WP_User_Profile {
 				$nonce = $this->wp_facade->wp_create_nonce( static::NONCE_KEY );
 				$display = $this->template->render_template( 'personal-options/sso-with-password', array(
 					'app_display_name' => $options[LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME],
-					'unpair_uri' => $this->wp_facade->admin_url( '/profile.php?launchkey_unpair=1&launchkey_nonce=' . $nonce ),
 					'password_remove_uri' => $this->wp_facade->admin_url( '/profile.php?launchkey_remove_password=1&launchkey_nonce=' .  $nonce )
 				) );
 			} else {
@@ -223,8 +222,6 @@ class LaunchKey_WP_User_Profile {
 				'password_remove_uri' => $this->wp_facade->admin_url( '/profile.php?launchkey_remove_password=1&launchkey_nonce=' .
 				                                                      $nonce )
 			) );
-		} else {
-			$display = "";
 		}
 
 		return $display;
