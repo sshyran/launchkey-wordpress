@@ -38,14 +38,9 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 	protected $template;
 	/**
 	 * @Mock
-	 * @var XMLSecurityKey
+	 * @var LaunchKey_WP_SAML2_Service
 	 */
-	protected $security_key;
-	/**
-	 * @Mock
-	 * @var SAML2_Compat_AbstractContainer
-	 */
-	protected $container;
+	protected $saml_service;
 
 	/**
 	 * @var LaunchKey_WP_SSO_Client
@@ -54,13 +49,12 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 
 	protected function setUp() {
 		Phake::initAnnotations( $this );
-		Phake::when( $this->container )->generateId( Phake::anyParameters() )->thenReturn( static::UNIQUE_ID );
-		SAML2_Compat_ContainerSingleton::setContainer( $this->container );
+
 		$this->client = new LaunchKey_WP_SSO_Client(
 			$this->facade,
 			$this->template,
 			static::ENTITY_ID,
-			$this->security_key,
+			$this->saml_service,
 			static::LOGIN_URL,
 			static::LOGOUT_URL,
 			static::ERROR_URL
@@ -71,6 +65,6 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 		$this->client = null;
 		$this->facade = null;
 		$this->template = null;
-		$this->security_key = null;
+		$this->saml_service = null;
 	}
 }

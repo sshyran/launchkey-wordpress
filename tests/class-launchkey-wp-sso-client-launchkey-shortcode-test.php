@@ -53,7 +53,7 @@ class LaunchKey_WP_SSO_Client_LaunchKey_ShortCode_Test extends LaunchKey_WP_SSO_
 				$this->facade,
 				$this->template,
 				static::ENTITY_ID,
-				$this->security_key,
+				$this->saml_service,
 				static::LOGIN_URL,
 				static::LOGOUT_URL,
 				static::ERROR_URL

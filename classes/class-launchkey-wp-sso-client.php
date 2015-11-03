@@ -27,9 +27,9 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	private $entity_id;
 
 	/**
-	 * @var string
+	 * @var LaunchKey_WP_SAML2_Service
 	 */
-	private $security_key;
+	private $saml_service;
 
 	/**
 	 * @var string
@@ -52,16 +52,16 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	 * @param LaunchKey_WP_Global_Facade $wp_facade
 	 * @param LaunchKey_WP_Template $template
 	 * @param string $entity_id
-	 * @param XMLSecurityKey $security_key Security key to validate response signatures
+	 * @param LaunchKey_WP_SAML2_Service $saml_service Service providing SAML functionality
 	 * @param string $login_url URL to send user when logging in in via SSO
 	 * @param string $logout_url URL to send user after logout when logged in via SSO
 	 * @param string $error_url URL to send user when a login/logout error occurs
 	 */
-	public function __construct( LaunchKey_WP_Global_Facade $wp_facade, LaunchKey_WP_Template $template, $entity_id, XMLSecurityKey $security_key, $login_url, $logout_url, $error_url ) {
+	public function __construct( LaunchKey_WP_Global_Facade $wp_facade, LaunchKey_WP_Template $template, $entity_id, LaunchKey_WP_SAML2_Service $saml_service, $login_url, $logout_url, $error_url ) {
 		$this->wp_facade = $wp_facade;
 		$this->template = $template;
 		$this->entity_id = $entity_id;
-		$this->security_key = $security_key;
+		$this->saml_service = $saml_service;
 		$this->login_url = $login_url;
 		$this->logout_url = $logout_url;
 		$this->error_url = $error_url;
@@ -181,31 +181,17 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	public function authenticate( $user, $username, $password ) {
 		if ( empty( $user ) && empty( $username ) && empty( $password ) && !empty( $_REQUEST['SAMLResponse'] ) ) {
 			try {
-				$response_element = SAML2_DOMDocumentFactory::fromString( base64_decode( $_REQUEST['SAMLResponse'] ) )->documentElement;
-				$signature_info = SAML2_Utils::validateElement( $response_element );
-				SAML2_Utils::validateSignature( $signature_info, $this->security_key );
-				$response = SAML2_StatusResponse::fromXML( $response_element );
-				/** @var SAML2_Assertion[] $assertions */
-				$assertions = $response->getAssertions();
-				if ( empty( $assertions ) ) {
-					throw new Exception( "No assertions in SAML response" );
-				}
-
-				$assertion = $assertions[0];
-				$name_id = $assertion->getNameId();
-				$username = $name_id['Value'];
-				$session_id = $assertion->getSessionIndex();
 
 				// Find the user by login
-				$user = $this->wp_facade->get_user_by( 'login', $username );
+				$user = $this->wp_facade->get_user_by( 'login', $this->saml_service->get_name() );
 
 				// If we don't have a user, create one
 				if ( !( $user instanceof WP_User ) ) {
-					$attributes = $assertion->getAttributes();
+					$roles = $this->saml_service->get_attribute( 'role' );
 					$user_data = array(
-						'user_login' => $username,
+						'user_login' => $this->saml_service->get_name(),
 						'user_pass' => '',
-						'role' => empty( $attributes['role'] ) ? false : $this->translate_role( $attributes['role'][0] )
+						'role' => empty( $roles ) ? false : $this->translate_role( $roles[0] )
 					);
 					$user_id = $this->wp_facade->wp_insert_user( $user_data );
 					// Unset the password - wp_insert_user always generates a hash - it's misleading
@@ -214,7 +200,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 				}
 
 				// Set the SSO session so we know we are logged in via SSSO
-				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', $session_id );
+				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', $this->saml_service->get_session_index() );
 
 			} catch ( Exception $e ) {
 				$this->wp_facade->wp_redirect( $this->error_url );

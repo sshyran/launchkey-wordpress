@@ -107,7 +107,7 @@ function launchkey_plugin_init() {
 		} else {
 			throw new RuntimeException( 'Unable to upgrade LaunchKey meta-data.  Failed to save setting ' . LaunchKey_WP_Admin::OPTION_KEY );
 		}
-	} elseif ( ! get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
+	} elseif ( !get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
 		add_option( LaunchKey_WP_Admin::OPTION_KEY, array() );
 	}
 
@@ -134,11 +134,12 @@ function launchkey_plugin_init() {
 		SAML2_Compat_ContainerSingleton::setContainer( $container );
 		$securityKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1, array( 'type' => 'public' ) );
 		$securityKey->loadKey( $options[LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE], false, true );
+		$saml_service = new LaunchKey_WP_SAML2_Service( $securityKey );
 		$client = new LaunchKey_WP_SSO_Client(
 			$facade,
 			$template,
 			$options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID],
-			$securityKey,
+			$saml_service,
 			$options[LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL],
 			$options[LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL],
 			$options[LaunchKey_WP_Options::OPTION_SSO_ERROR_URL]
@@ -199,7 +200,7 @@ function launchkey_plugin_init() {
 		 *
 		 * @since 1.0.0
 		 */
-		if ( ! has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
+		if ( !has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
 			add_action( 'login_enqueue_scripts', 'wp_print_styles', 11 );
 		}
 	}
