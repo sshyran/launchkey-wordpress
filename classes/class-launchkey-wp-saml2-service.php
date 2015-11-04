@@ -22,11 +22,18 @@ class LaunchKey_WP_SAML2_Service {
 	private $destination;
 
 	/**
+	 * @var LaunchKey_WP_Global_Facade
+	 */
+	private $facade;
+
+	/**
 	 * LaunchKey_WP_SAML2_Service constructor.
 	 * @param XMLSecurityKey $security_key
+	 * @param LaunchKey_WP_Global_Facade $facade
 	 */
-	public function __construct( XMLSecurityKey $security_key ) {
+	public function __construct( XMLSecurityKey $security_key, LaunchKey_WP_Global_Facade $facade ) {
 		$this->security_key = $security_key;
+		$this->facade = $facade;
 	}
 
 	/**
@@ -96,8 +103,8 @@ class LaunchKey_WP_SAML2_Service {
 	 */
 	public function is_entity_in_audience( $entity_id ) {
 		$valid = true;
-		foreach ($this->assertions as $assertion) {
-			if ($assertion->getValidAudiences() && !in_array($entity_id, $assertion->getValidAudiences() ) ) {
+		foreach ( $this->assertions as $assertion ) {
+			if ( $assertion->getValidAudiences() && !in_array( $entity_id, $assertion->getValidAudiences() ) ) {
 				$valid = false;
 				break;
 			}
@@ -113,9 +120,10 @@ class LaunchKey_WP_SAML2_Service {
 	 */
 	public function is_timestamp_within_restrictions( $timestamp ) {
 		$valid = true;
-		foreach ($this->assertions as $assertion) {
-			if ( ($assertion->getNotBefore() && $timestamp < $assertion->getNotBefore() ) ||
-			     ( $assertion->getNotOnOrAfter() && $timestamp >= $assertion->getNotOnOrAfter() ) ) {
+		foreach ( $this->assertions as $assertion ) {
+			if ( ( $assertion->getNotBefore() && $timestamp < $assertion->getNotBefore() ) ||
+			     ( $assertion->getNotOnOrAfter() && $timestamp >= $assertion->getNotOnOrAfter() )
+			) {
 				$valid = false;
 				break;
 			}
@@ -131,5 +139,34 @@ class LaunchKey_WP_SAML2_Service {
 	 */
 	public function is_valid_destination( $destination ) {
 		return $destination === $this->destination;
+	}
+
+	/**
+	 * Register the current session index to prevent replay
+	 */
+	public function register_session_index() {
+		$db = $this->facade->get_wpdb();
+		$date = date( "Y-m-d H:i:s" );
+		$query = $db->prepare(
+			"INSERT INTO {$db->prefix}launchkey_sso_sessions VALUES (%s, %s) ON DUPLICATE KEY UPDATE seen = %s",
+			$this->get_session_index(),
+			$date,
+			$date
+		);
+		$db->query( $query );
+	}
+
+	/**
+	 * Is the current session index registered. If so, this is a replay
+	 * @return bool Registered
+	 */
+	public function is_session_index_registered() {
+		$db = $this->facade->get_wpdb();
+		$query = $db->prepare(
+				"SELECT COUNT(*) FROM {$db->prefix}launchkey_sso_sessions WHERE id = %s",
+				$this->get_session_index()
+		);
+		$count = $db->get_var( $query );
+		return $count > 0;
 	}
 }

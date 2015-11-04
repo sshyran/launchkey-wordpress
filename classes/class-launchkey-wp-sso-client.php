@@ -188,6 +188,11 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 					throw new Exception( "Response has expired" );
 				} elseif ( ! $this->saml_service->is_valid_destination( $this->wp_facade->wp_login_url() ) ) {
 					throw new Exception( "Invalid response destination" );
+				} elseif ( $this->saml_service->is_session_index_registered() ) {
+					throw new Exception( sprintf(
+							"Session index %s already registered.  Possible replay attack.",
+							$this->saml_service->get_session_index()
+					) );
 				}
 
 				// Find the user by login
@@ -210,9 +215,11 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 				// Set the SSO session so we know we are logged in via SSO
 				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', $this->saml_service->get_session_index() );
 
+				$this->saml_service->register_session_index();
+
 			} catch ( Exception $e ) {
 				$this->wp_facade->wp_redirect( $this->error_url );
-				$this->wp_facade->exit();
+				$this->wp_facade->_exit();
 			};
 			return $user;
 		}
@@ -231,7 +238,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', null );
 				// Redirect to SSO logout
 				$this->wp_facade->wp_redirect( $this->logout_url );
-				$this->wp_facade->exit();
+				$this->wp_facade->_exit();
 			}
 		}
 	}

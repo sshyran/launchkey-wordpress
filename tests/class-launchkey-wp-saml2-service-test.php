@@ -11,6 +11,8 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	 */
 	const UNIQUE_ID = "Expected Unique ID";
 
+	const PREPARED_STARTEMENT = "Expected prepared statement";
+
 	/**
 	 * @var XMLSecurityKey
 	 */
@@ -26,9 +28,20 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	 */
 	protected $container;
 	/**
+	 * @Mock
+	 * @var LaunchKey_WP_Global_Facade
+	 */
+	private $facade;
+	/**
 	 * @var LaunchKey_WP_SAML2_Service
 	 */
 	private $service;
+
+	/**
+	 * @Mock
+	 * @var wpdb
+	 */
+	private $wpdb;
 
 	public static function setUpBeforeClass() {
 		$cert = "-----BEGIN CERTIFICATE-----\n" .
@@ -235,11 +248,12 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 
 	public function data_provider_valid_destination() {
 		return array(
-				"Valid is true" => array( "http://127.0.0.1:8080/acs/post", true ),
-				"Invalid is false" => array( "http://127.0.0.1:8080/acs/post-not", false ),
-				"Null is false" => array( null, false ),
+			"Valid is true" => array( "http://127.0.0.1:8080/acs/post", true ),
+			"Invalid is false" => array( "http://127.0.0.1:8080/acs/post-not", false ),
+			"Null is false" => array( null, false ),
 		);
 	}
+
 	/**
 	 * @dataProvider data_provider_valid_destination
 	 * @param string $destination
@@ -250,11 +264,83 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 		$this->assertSame( $expected, $actual );
 	}
 
+	public function test_register_session_index_writes_data_to_the_table() {
+		$start = time();
+		$this->service->register_session_index();
+		$end = time();
+		$expected = "INSERT INTO prefix_launchkey_sso_sessions VALUES (%s, %s) ON DUPLICATE KEY UPDATE seen = %s";
+		Phake::inOrder(
+			Phake::verify( $this->wpdb )->prepare(
+				$expected,
+				Phake::equalTo( "id-b4373c87a6f18f97862c931744fd799f" ),
+				Phake::capture( $insert_date_string ),
+				Phake::capture( $update_date_string )
+			),
+			Phake::verify( $this->wpdb )->query( static::PREPARED_STARTEMENT )
+		);
+		$this->assertEquals(
+			$insert_date_string,
+			$update_date_string,
+			"Insert and update date strings were expected to be the same but were not"
+		);
+
+		$this->assertRegExp(
+			'/[12][0-9]{3}-[0-9]{2}-[0-9]{2} [0-2][0-9]:[0-5][0-9]:[0-5][0-9]/',
+			$insert_date_string,
+			"Date strings are not in MYSQL date format"
+		);
+		$sql_time = strtotime( $insert_date_string );
+
+		$this->assertGreaterThanOrEqual( $sql_time, $start, sprintf(
+			"Date string of %s is not on or after recorded start time of %s",
+			$insert_date_string,
+			date( 'Y-m-d H:i:s', $start )
+		) );
+
+		$this->assertLessThanOrEqual( $sql_time, $end, sprintf(
+			"Date string of %s is not on or after recorded start time of %s",
+			$insert_date_string,
+			date( 'Y-m-d H:i:s', $end )
+		) );
+	}
+
+	public function test_is_session_index_registered_makes_proper_query_against_database() {
+		$this->service->is_session_index_registered();
+		Phake::inOrder(
+			Phake::verify( $this->wpdb )->prepare(
+				"SELECT COUNT(*) FROM prefix_launchkey_sso_sessions WHERE id = %s",
+				"id-b4373c87a6f18f97862c931744fd799f"
+			),
+			Phake::verify( $this->wpdb )->get_var( static::PREPARED_STARTEMENT )
+		);
+	}
+
+	/**
+	 * @depends test_is_session_index_registered_makes_proper_query_against_database
+	 */
+	public function test_is_session_index_registered_returns_true_when_index_is_in_table() {
+		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 1 );
+		$actual = $this->service->is_session_index_registered();
+		$this->assertTrue( $actual );
+	}
+
+	/**
+	 * @depends test_is_session_index_registered_makes_proper_query_against_database
+	 */
+	public function test_is_session_index_registered_returns_false_when_index_is_not_in_table() {
+		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 0 );
+		$actual = $this->service->is_session_index_registered();
+		$this->assertFalse( $actual );
+	}
+
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 		Phake::when( $this->container )->generateId( Phake::anyParameters() )->thenReturn( static::UNIQUE_ID );
+		$this->wpdb->prefix = "prefix_";
+		Phake::when( $this->wpdb )->prepare( Phake::anyParameters() )->thenReturn( static::PREPARED_STARTEMENT );
+		Phake::when( $this->facade )->get_wpdb()->thenReturn( $this->wpdb );
 		SAML2_Compat_ContainerSingleton::setContainer( $this->container );
-		$this->service = new LaunchKey_WP_SAML2_Service( self::$key );
+		$this->service = new LaunchKey_WP_SAML2_Service( self::$key, $this->facade );
 		$this->service->load_saml_response( self::$response_data );
 	}
 

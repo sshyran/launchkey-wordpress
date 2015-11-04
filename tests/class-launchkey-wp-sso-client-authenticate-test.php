@@ -122,8 +122,8 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenThrow( new Exception() );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
-				Phake::verify( $this->facade )->exit( Phake::anyParameters() )
+			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
+			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
 	}
 
@@ -136,9 +136,9 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->saml_service )->is_entity_in_audience( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_service )->is_entity_in_audience( static::ENTITY_ID ),
-				Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
-				Phake::verify( $this->facade )->exit( Phake::anyParameters() )
+			Phake::verify( $this->saml_service )->is_entity_in_audience( static::ENTITY_ID ),
+			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
+			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
 	}
 
@@ -151,9 +151,9 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->saml_service )->is_timestamp_within_restrictions( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_service )->is_timestamp_within_restrictions( static::NOW ),
-				Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
-				Phake::verify( $this->facade )->exit( Phake::anyParameters() )
+			Phake::verify( $this->saml_service )->is_timestamp_within_restrictions( static::NOW ),
+			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
+			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
 	}
 
@@ -162,13 +162,39 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::verify( $this->saml_service )->is_valid_destination( static::SSO_POST_URL );
 	}
 
-	public function test_invalid_destinaiton_redirects_to_error_url_and_exits() {
+	public function test_invalid_destination_redirects_to_error_url_and_exits() {
 		Phake::when( $this->saml_service )->is_valid_destination( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_service )->is_valid_destination( static::SSO_POST_URL ),
+			Phake::verify( $this->saml_service )->is_valid_destination( static::SSO_POST_URL ),
+			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
+			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
+		);
+	}
+
+	public function test_registers_session_index_on_successful_auth() {
+		$this->client->authenticate( null, null, null );
+		Phake::verify( $this->saml_service )->register_session_index();
+	}
+
+	public function test_does_not_register_session_index_on_unsuccessful_auth() {
+		Phake::when( $this->saml_service )->is_session_index_registered()->thenReturn( true );
+		$this->client->authenticate( null, null, null );
+		Phake::verify( $this->saml_service, Phake::never() )->register_session_index();
+	}
+
+	public function test_checks_if_session_index_registered() {
+		$this->client->authenticate( null, null, null );
+		Phake::verify( $this->saml_service )->is_session_index_registered();
+	}
+
+	public function test_session_index_already_registered_redirects_to_error_url_and_exits() {
+		Phake::when( $this->saml_service )->is_session_index_registered()->thenReturn( true );
+		$this->client->authenticate( null, null, null );
+		Phake::inOrder(
+				Phake::verify( $this->saml_service )->is_session_index_registered(),
 				Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
-				Phake::verify( $this->facade )->exit( Phake::anyParameters() )
+				Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
 	}
 
@@ -192,6 +218,7 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->saml_service )->is_entity_in_audience( Phake::anyParameters() )->thenReturn( true );
 		Phake::when( $this->saml_service )->is_timestamp_within_restrictions( Phake::anyParameters() )->thenReturn( true );
 		Phake::when( $this->saml_service )->is_valid_destination( Phake::anyParameters() )->thenReturn( true );
+		Phake::when( $this->saml_service )->is_session_index_registered()->thenReturn( false );
 	}
 
 	protected function tearDown() {

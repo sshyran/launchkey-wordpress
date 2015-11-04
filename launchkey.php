@@ -12,15 +12,81 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 /**
+ * Create/update tables utilized by the plugin
+ * @since 1.1.0
+ */
+function launchkey_create_tables() {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'launchkey_sso_sessions';
+
+	$sql = "CREATE TABLE {$table_name} (
+		id VARCHAR(255) NOT NULL,
+		seen DATETIME NOT NULL,
+		UNIQUE KEY {$table_name}_id (id)
+	);";
+
+	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	dbDelta( $sql );
+}
+
+function launchkey_cron() {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'launchkey_sso_sessions';
+	$dt = new DateTime("- 1 hour");
+	$dt->setTimezone(new DateTimeZone("UTC"));
+
+	$wpdb->query(
+			$wpdb->prepare("DELETE FROM {$table_name} WHERE seen < %s", $dt->format("Y-m-d H:i:s"))
+	);
+}
+
+function launchkey_cron_remove() {
+	$timestamp = wp_next_scheduled( 'launchkey_cron_hook' );
+	wp_unschedule_event($timestamp, 'launchkey_cron_hook' );
+}
+
+
+/**
  * Initialize LaunchKey WordPress Plugin
  *
- * This function will perform the entire initializaiton for the plugin.  The initialization is encapsulated into
+ * This function will perform the entire initialization for the plugin.  The initialization is encapsulated into
  * a funciton to protect against global variable collision.
  *
  * @since 1.0.0
  * Enclose plug-in initialization to protect against global variable corruption
  */
 function launchkey_plugin_init() {
+
+	/**
+	 * Register activation hooks for the plugin
+	 * @since 1.1.0
+	 */
+	register_activation_hook( __FILE__, 'launchkey_create_tables' );
+
+	/**
+	 * Remove the scheduled cron
+	 * @since 1.1.0
+	 */
+	register_deactivation_hook( __FILE__, 'launchkey_cron_remove' );
+
+	/**
+	 * @since 1.1.0
+	 * Add the cron hook and schedule if not scheduled
+	 */
+	add_action( 'launchkey_cron_hook' , 'launchkey_cron' );
+	if( ! wp_next_scheduled( 'launchkey_cron_hook' ) ) {
+		wp_schedule_event( time(), 'hourly', 'launchkey_cron_hook' );
+	}
+
+	/**
+	 * Handle upgrades if in the admin and not the latest version
+	 */
+	if ( is_admin() ) {
+		$options = get_option( LaunchKey_WP_Admin::OPTION_KEY );
+		if ( $options && $options[LaunchKey_WP_Options::OPTION_VERSION] < 1.1 ) {
+			launchkey_create_tables();
+		}
+	}
 
 	/**
 	 * Language domain for the plugin
@@ -134,7 +200,7 @@ function launchkey_plugin_init() {
 		SAML2_Compat_ContainerSingleton::setContainer( $container );
 		$securityKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1, array( 'type' => 'public' ) );
 		$securityKey->loadKey( $options[LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE], false, true );
-		$saml_service = new LaunchKey_WP_SAML2_Service( $securityKey );
+		$saml_service = new LaunchKey_WP_SAML2_Service( $securityKey, $facade );
 		$client = new LaunchKey_WP_SSO_Client(
 			$facade,
 			$template,
@@ -168,7 +234,7 @@ function launchkey_plugin_init() {
 				'launchkey-script',
 				plugins_url( '/public/launchkey-login.js', __FILE__ ),
 				array( 'jquery' ),
-				'1.0.0',
+				'1.1.0',
 				true
 			);
 		} );
@@ -246,3 +312,4 @@ function launchkey_plugin_init() {
 
 // Run the initialization function above
 launchkey_plugin_init();
+

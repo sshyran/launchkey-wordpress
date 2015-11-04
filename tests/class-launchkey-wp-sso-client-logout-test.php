@@ -37,7 +37,7 @@ class LaunchKey_WP_SSO_Client_Logout_Test extends LaunchKey_WP_SSO_Client_Test_A
 		$this->client->logout();
 		Phake::inOrder(
 				Phake::verify( $this->facade )->wp_redirect( static::LOGOUT_URL ),
-				Phake::verify( $this->facade )->exit( Phake::anyParameters() )
+				Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
 
 		Phake::verifyNoFurtherInteraction( $this->facade );

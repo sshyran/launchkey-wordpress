@@ -119,5 +119,7 @@ if ( ! class_exists( 'wpdb' ) ) {
 		function get_var( $query = null, $x = 0, $y = 0 );
 
 		function prepare( $query, $args = null );
+
+		function query( $query );
 	}
 }
