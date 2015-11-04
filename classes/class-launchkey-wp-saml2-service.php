@@ -7,7 +7,7 @@
 class LaunchKey_WP_SAML2_Service {
 
 	/**
-	 * @var SAML2_Assertion
+	 * @var array|SAML2_Assertion[]
 	 */
 	private $assertions = array();
 
@@ -15,6 +15,11 @@ class LaunchKey_WP_SAML2_Service {
 	 * @var XMLSecurityKey
 	 */
 	private $security_key;
+
+	/**
+	 * @var string
+	 */
+	private $destination;
 
 	/**
 	 * LaunchKey_WP_SAML2_Service constructor.
@@ -33,6 +38,7 @@ class LaunchKey_WP_SAML2_Service {
 		$signature_info = SAML2_Utils::validateElement( $response_element );
 		SAML2_Utils::validateSignature( $signature_info, $this->security_key );
 		$response = SAML2_StatusResponse::fromXML( $response_element );
+		$this->destination = $response->getDestination();
 		/** @var SAML2_Assertion[] $assertions */
 		$assertions = $response->getAssertions();
 		$this->assertions = $assertions;
@@ -80,5 +86,50 @@ class LaunchKey_WP_SAML2_Service {
 			}
 		}
 		return $value;
+	}
+
+	/**
+	 * Is the entity ID provided within the audience restrictions of the response.
+	 *
+	 * @param string $entity_id Entity ID to validate
+	 * @return bool
+	 */
+	public function is_entity_in_audience( $entity_id ) {
+		$valid = true;
+		foreach ($this->assertions as $assertion) {
+			if ($assertion->getValidAudiences() && !in_array($entity_id, $assertion->getValidAudiences() ) ) {
+				$valid = false;
+				break;
+			}
+		}
+		return $valid;
+	}
+
+	/**
+	 * Is the provided timestamp within the conditional time window of the response
+	 *
+	 * @param int $timestamp Timestamp to validate
+	 * @return bool
+	 */
+	public function is_timestamp_within_restrictions( $timestamp ) {
+		$valid = true;
+		foreach ($this->assertions as $assertion) {
+			if ( ($assertion->getNotBefore() && $timestamp < $assertion->getNotBefore() ) ||
+			     ( $assertion->getNotOnOrAfter() && $timestamp >= $assertion->getNotOnOrAfter() ) ) {
+				$valid = false;
+				break;
+			}
+		}
+		return $valid;
+	}
+
+	/**
+	 * Is the provided destination URL the destination URL for the response.
+	 *
+	 * @param string $destination Destination URL to validate
+	 * @return bool
+	 */
+	public function is_valid_destination( $destination ) {
+		return $destination === $this->destination;
 	}
 }

@@ -20,18 +20,15 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	 * @var string
 	 */
 	private static $response_data;
-
-	/**
-	 * @var LaunchKey_WP_SAML2_Service
-	 */
-	private $service;
-
 	/**
 	 * @Mock
 	 * @var SAML2_Compat_AbstractContainer
 	 */
 	protected $container;
-
+	/**
+	 * @var LaunchKey_WP_SAML2_Service
+	 */
+	private $service;
 
 	public static function setUpBeforeClass() {
 		$cert = "-----BEGIN CERTIFICATE-----\n" .
@@ -195,6 +192,62 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	public function test_get_attribute_returns_correct_values_when_exists() {
 		$actual = $this->service->get_attribute( "akey" );
 		$this->assertEquals( array( "avalue" ), $actual );
+	}
+
+	public function data_provider_entity_in_audience() {
+		return array(
+			"ID in audience returns true" => array( "test-sso", true ),
+			"ID not in audience returns false" => array( "not-in", false ),
+			"Null ID returns false" => array( null, false )
+		);
+	}
+
+	/**
+	 * @dataProvider data_provider_entity_in_audience
+	 * @param string $entity
+	 * @param bool $expected
+	 */
+	public function test_is_entity_in_audience( $entity, $expected ) {
+		$actual = $this->service->is_entity_in_audience( $entity );
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function data_provider_timestamp_within_restrictions() {
+		return array(
+			"Below bottom is false" => array( strtotime( "2015-11-03T22:42:23Z" ), false ),
+			"Bottom is true" => array( strtotime( "2015-11-03T22:42:24Z" ), true ),
+			"Above bottom and below top is true" => array( strtotime( "2015-11-03T22:42:25Z" ), true ),
+			"Below top is true" => array( strtotime( "2015-11-03T22:57:23Z" ), true ),
+			"At top is false" => array( strtotime( "2015-11-03T22:57:24Z" ), false ),
+			"Above top is false" => array( strtotime( "2015-11-03T22:57:25Z" ), false ),
+		);
+	}
+
+	/**
+	 * @dataProvider data_provider_timestamp_within_restrictions
+	 * @param int $timestamp
+	 * @param bool $expected
+	 */
+	public function test_timestamp_within_restrictions( $timestamp, $expected ) {
+		$actual = $this->service->is_timestamp_within_restrictions( $timestamp );
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function data_provider_valid_destination() {
+		return array(
+				"Valid is true" => array( "http://127.0.0.1:8080/acs/post", true ),
+				"Invalid is false" => array( "http://127.0.0.1:8080/acs/post-not", false ),
+				"Null is false" => array( null, false ),
+		);
+	}
+	/**
+	 * @dataProvider data_provider_valid_destination
+	 * @param string $destination
+	 * @param bool $expected
+	 */
+	public function test_is_valid_destination( $destination, $expected ) {
+		$actual = $this->service->is_valid_destination( $destination );
+		$this->assertSame( $expected, $actual );
 	}
 
 	protected function setUp() {

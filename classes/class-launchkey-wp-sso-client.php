@@ -159,7 +159,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 			'style' => $style,
 			'login_url' => $binding->getRedirectURL( $request ),
 			'login_text' => 'Log in with',
-			'login_with_app_name' => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ],
+			'login_with_app_name' => $options[LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME],
 			'size' => in_array( $this->wp_facade->get_locale(), array(
 				'fr_FR',
 				'es_ES'
@@ -181,6 +181,14 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	public function authenticate( $user, $username, $password ) {
 		if ( empty( $user ) && empty( $username ) && empty( $password ) && !empty( $_REQUEST['SAMLResponse'] ) ) {
 			try {
+				$this->saml_service->load_saml_response( $_REQUEST['SAMLResponse'] );
+				if ( ! $this->saml_service->is_entity_in_audience( $this->entity_id ) ) {
+					throw new Exception( sprintf( "Entity \"%s\" is not in allowed audience", $this->entity_id ) );
+				} elseif ( ! $this->saml_service->is_timestamp_within_restrictions( $this->wp_facade->time() ) ) {
+					throw new Exception( "Response has expired" );
+				} elseif ( ! $this->saml_service->is_valid_destination( $this->wp_facade->wp_login_url() ) ) {
+					throw new Exception( "Invalid response destination" );
+				}
 
 				// Find the user by login
 				$user = $this->wp_facade->get_user_by( 'login', $this->saml_service->get_name() );
@@ -199,7 +207,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 					$user = new WP_User( $user_id );
 				}
 
-				// Set the SSO session so we know we are logged in via SSSO
+				// Set the SSO session so we know we are logged in via SSO
 				$this->wp_facade->update_user_meta( $user->ID, 'launchkey_sso_session', $this->saml_service->get_session_index() );
 
 			} catch ( Exception $e ) {
