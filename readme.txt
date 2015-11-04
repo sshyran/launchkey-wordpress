@@ -87,6 +87,10 @@ Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 = 1.1.4 =
 * Fix escalation of privilege error found via bug bounty. (Ported from 1.0.6)
 * Clean up CSS for small browsers with 3rd implementation type in wizard.
+* Add validation for destination, audience, and time for SSO response
+* Add replay attack detection to SSO
+* Turn off autocomplete on standard verification in wizard to prevent important text from being obscured.
+* Inform the user of their WordPress username in standard and white label wizards in case the user was migrating from SSO or OAuth and did not know or remember their WordPress username.
 
 = 1.1.3 =
 * Fix content in SSO wizard

@@ -576,8 +576,8 @@
     <div class="lk-verify-form">
 
         <!-- Verify standard only elements -->
-        <form id="verify-native-form" class="lk-standard-only">
-            <input id="username" type="text" class="lk-text-input" placeholder="LaunchKey Username"/>
+        <form id="verify-native-form" class="lk-standard-only" autocomplete="off">
+            <input id="username" type="text" class="lk-text-input" placeholder="LaunchKey Username" autocomplete="off"/>
             <input id="verify-native-button" type="submit" class="lk-blue-btn" value="Verify"/>
         </form>
 
@@ -631,14 +631,20 @@
         <div class="lk-headline-container">
             <h2 class="launchkey-intro-headline">Finished!</h2>
 
-            <p class="light-grey-large">Congrats, LaunchKey has been configured with your WordPress site. <strong>To log
-                in to WordPress with LaunchKey, simply submit the login form with your standard WordPress username, but
-                leave the password field blank.</strong></p>
+            <p class="light-grey-large">Congrats, LaunchKey has been configured with your WordPress site.</p> <strong>
+            <p class="light-grey-large light-grey-bold">
+                To log in to WordPress with LaunchKey, simply submit the login form with your standard WordPress
+                username, <em><strong>%%%wp_username%%%</strong></em>.
+            </p>
 
             <h2 class="launchkey-intro-headline">Setting Up Other Users</h2>
 
             <p class="light-grey-large">Other users of this WordPress site may activate LaunchKey by enabling LaunchKey
                 within their WordPress profile section. Please notify them accordingly.</p>
+
+            <p class="light-grey-large">Until the remaining users of your WordPress site activate LaunchKey for their
+                user account, they will need to click the <em>Show Password Field</em> link on the login form
+                to enter the password for their user.</p>
 
             <p class="light-grey-large">Click the <em>Finish</em> button below to proceed to the standard settings and
                 configuration page.</p>
@@ -981,7 +987,7 @@
                                 <li><strong>Email address</strong> Email address of the user to add to your organization.</li>
                             </ul>
                         </li>
-                        <li>Press the <em>Invlte</em> button.  The user will receive an email request to join the Organization.</li>
+                        <li>Press the <em>Invite</em> button.  The user will receive an email request to join the Organization.</li>
                         <li>Repeat until all users have been added.</li>
                     </ol>
                 </li>
