@@ -304,6 +304,17 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 		) );
 	}
 
+
+	/**
+	 * @expectedException Exception
+	 * @expectedExceptionMessage Database Error: Expected Error
+	 */
+	public function test_register_session_index_throws_exception_on_database_error() {
+		$this->wpdb->last_error = "Expected Error";
+		$this->service->register_session_index();
+	}
+
+
 	public function test_is_session_index_registered_makes_proper_query_against_database() {
 		$this->service->is_session_index_registered();
 		Phake::inOrder(
@@ -333,10 +344,21 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 		$this->assertFalse( $actual );
 	}
 
+	/**
+	 * @expectedException Exception
+	 * @expectedExceptionMessage Database Error: Expected Error
+	 */
+	public function test_is_session_index_registered_throws_exception_on_database_error() {
+		$this->wpdb->last_error = "Expected Error";
+		$this->service->is_session_index_registered();
+
+	}
+
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 		Phake::when( $this->container )->generateId( Phake::anyParameters() )->thenReturn( static::UNIQUE_ID );
 		$this->wpdb->prefix = "prefix_";
+		$this->wpdb->last_error = "";
 		Phake::when( $this->wpdb )->prepare( Phake::anyParameters() )->thenReturn( static::PREPARED_STARTEMENT );
 		Phake::when( $this->facade )->get_wpdb()->thenReturn( $this->wpdb );
 		SAML2_Compat_ContainerSingleton::setContainer( $this->container );
