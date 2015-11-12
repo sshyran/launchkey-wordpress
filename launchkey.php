@@ -113,7 +113,7 @@ function launchkey_plugin_init() {
 	 * Create an AES encryption class for encryption/decryption of the secret options
 	 * @link https://docs.launchkey.com/glossary.html#term-aes
 	 */
-	$crypt_aes = new Crypt_AES();
+	$crypt_aes = new \phpseclib\Crypt\AES();
 	/**
 	 * Use an MD5 hash of the auth key as the crypto key.  The crypto key is used as it would normally affect all auth
 	 * procedures as it is used as a salt for passwords.  An md5 hash is used as it will be a constant value based on

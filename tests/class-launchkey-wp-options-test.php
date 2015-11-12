@@ -13,7 +13,7 @@ class LaunchKey_WP_Options_Test extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * @Mock
-	 * @var Crypt_AES
+	 * @var \phpseclib\Crypt\AES
 	 */
 	private $crypt_aes;
 
