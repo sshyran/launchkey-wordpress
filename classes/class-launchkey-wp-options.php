@@ -42,16 +42,16 @@ class LaunchKey_WP_Options {
 	private $cache;
 
 	/**
-	 * @var Crypt_AES
+	 * @var \phpseclib\Crypt\AES
 	 */
 	private $crypt_aes;
 
 	/**
 	 * LaunchKey_WP_Options constructor.
 	 *
-	 * @param Crypt_AES $crypt_aes
+	 * @param \phpseclib\Crypt\AES $crypt_aes
 	 */
-	public function __construct( Crypt_AES $crypt_aes ) {
+	public function __construct( \phpseclib\Crypt\AES $crypt_aes ) {
 		$this->crypt_aes = $crypt_aes;
 		$this->cache = array();
 	}

@@ -360,7 +360,7 @@ class LaunchKey_WP_Admin {
 			);
 		} else if ( !empty( $_FILES['private_key']['tmp_name'] ) ) {
 			$private_key = @file_get_contents( $_FILES['private_key']['tmp_name'] );
-			$rsa = new Crypt_RSA();
+			$rsa = new \phpseclib\Crypt\RSA();
 			if ( @$rsa->loadKey( $private_key ) ) {
 				if ( $rsa->getPrivateKey( $rsa->privateKeyFormat ) ) {
 					$options[LaunchKey_WP_Options::OPTION_PRIVATE_KEY] = $private_key;
