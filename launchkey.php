@@ -234,7 +234,7 @@ function launchkey_plugin_init() {
 				'launchkey-script',
 				plugins_url( '/public/launchkey-login.js', __FILE__ ),
 				array( 'jquery' ),
-				'1.1.0',
+				'1.1.1',
 				true
 			);
 		} );
