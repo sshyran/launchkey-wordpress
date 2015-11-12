@@ -291,13 +291,13 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 		);
 		$sql_time = strtotime( $insert_date_string );
 
-		$this->assertGreaterThanOrEqual( $sql_time, $start, sprintf(
+		$this->assertGreaterThanOrEqual( $start, $sql_time, sprintf(
 			"Date string of %s is not on or after recorded start time of %s",
 			$insert_date_string,
 			date( 'Y-m-d H:i:s', $start )
 		) );
 
-		$this->assertLessThanOrEqual( $sql_time, $end, sprintf(
+		$this->assertLessThanOrEqual( $end, $sql_time, sprintf(
 			"Date string of %s is not on or after recorded start time of %s",
 			$insert_date_string,
 			date( 'Y-m-d H:i:s', $end )
