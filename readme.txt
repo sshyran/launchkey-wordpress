@@ -88,6 +88,7 @@ Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 * PHP 7 compliance
 * Add proper database error handling for SSO service
 * Reload settings page after submit to reflect changes properly
+* Update to "handle" must use activation
 
 = 1.1.4 =
 * Fix escalation of privilege error found via bug bounty. (Ported from 1.0.6)
