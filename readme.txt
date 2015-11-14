@@ -84,11 +84,12 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
-= 1.1.5 =
+= 1.2.0 =
 * PHP 7 compliance
 * Add proper database error handling for SSO service
-* Reload settings page after submit to reflect changes properly
+* Reload plugin settings page after submit to reflect changes properly
 * Update to "handle" must use activation
+* Add Single Log Out for SSO
 
 = 1.1.4 =
 * Fix escalation of privilege error found via bug bounty. (Ported from 1.0.6)

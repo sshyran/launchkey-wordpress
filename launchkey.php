@@ -3,7 +3,7 @@
   Plugin Name: LaunchKey
   Plugin URI: https://wordpress.org/plugins/launchkey/
   Description:  LaunchKey eliminates the need and liability of passwords by letting you log in and out of WordPress with your smartphone or tablet.
-  Version: 1.1.5
+  Version: 1.2.0
   Author: LaunchKey, Inc.
   Text Domain: launchkey
   Author URI: https://launchkey.com
@@ -64,6 +64,7 @@ function launchkey_is_activated() {
  * Enclose plug-in initialization to protect against global variable corruption
  */
 function launchkey_plugin_init() {
+	global $wpdb;
 
 	/**
 	 * Register activation hooks for the plugin
@@ -89,7 +90,7 @@ function launchkey_plugin_init() {
 	/**
 	 * Handle upgrades if in the admin and not the latest version
 	 */
-	if ( is_admin() &&  launchkey_is_activated() ) {
+	if ( is_admin() && launchkey_is_activated() ) {
 		$options = get_option( LaunchKey_WP_Admin::OPTION_KEY );
 		if ( $options && $options[ LaunchKey_WP_Options::OPTION_VERSION ] < 1.1 ) {
 			launchkey_create_tables();
@@ -213,12 +214,16 @@ function launchkey_plugin_init() {
 		SAML2_Compat_ContainerSingleton::setContainer( $container );
 		$securityKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1, array( 'type' => 'public' ) );
 		$securityKey->loadKey( $options[ LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE ], false, true );
-		$saml_service = new LaunchKey_WP_SAML2_Service( $securityKey, $facade );
-		$client       = new LaunchKey_WP_SSO_Client(
+		$saml_response_service = new LaunchKey_WP_SAML2_Response_Service( $securityKey, $facade );
+		$saml_request_service  = new LaunchKey_WP_SAML2_Request_Service( $securityKey );
+
+		$client = new LaunchKey_WP_SSO_Client(
 			$facade,
 			$template,
 			$options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
-			$saml_service,
+			$saml_response_service,
+			$saml_request_service,
+			$wpdb,
 			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
 			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
 			$options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ]

@@ -4,7 +4,7 @@
  * @author Adam Englander <adam@launchkey.com>
  * @copyright 2015 LaunchKey, Inc. See project license for usage.
  */
-class LaunchKey_WP_SAML2_Service {
+class LaunchKey_WP_SAML2_Response_Service {
 
 	/**
 	 * @var array|SAML2_Assertion[]
@@ -27,7 +27,7 @@ class LaunchKey_WP_SAML2_Service {
 	private $facade;
 
 	/**
-	 * LaunchKey_WP_SAML2_Service constructor.
+	 * LaunchKey_WP_SAML2_Response_Service constructor.
 	 *
 	 * @param XMLSecurityKey $security_key
 	 * @param LaunchKey_WP_Global_Facade $facade
@@ -48,9 +48,8 @@ class LaunchKey_WP_SAML2_Service {
 		SAML2_Utils::validateSignature( $signature_info, $this->security_key );
 		$response          = SAML2_StatusResponse::fromXML( $response_element );
 		$this->destination = $response->getDestination();
-		/** @var SAML2_Assertion[] $assertions */
-		$assertions       = $response->getAssertions();
-		$this->assertions = $assertions;
+		$assertions        = $response->getAssertions();
+		$this->assertions  = $assertions;
 	}
 
 	/**
@@ -59,6 +58,7 @@ class LaunchKey_WP_SAML2_Service {
 	 */
 	public function get_name() {
 		foreach ( $this->assertions as $assertion ) {
+			$assertion->decryptNameId( $this->security_key );
 			$name_id = $assertion->getNameId();
 			if ( $name_id ) {
 				$name = $name_id['Value'];

@@ -4,7 +4,7 @@
  * @author Adam Englander <adam@launchkey.com>
  * @copyright 2015 LaunchKey, Inc. See project license for usage.
  */
-class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
+class LaunchKey_WP_SAML2_Response_Service_Test extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * @var string
@@ -22,18 +22,26 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	 * @var string
 	 */
 	private static $response_data;
+
+	/**
+	 * @var string
+	 */
+	private static $request_data;
+
 	/**
 	 * @Mock
 	 * @var SAML2_Compat_AbstractContainer
 	 */
 	protected $container;
+
 	/**
 	 * @Mock
 	 * @var LaunchKey_WP_Global_Facade
 	 */
 	private $facade;
+
 	/**
-	 * @var LaunchKey_WP_SAML2_Service
+	 * @var LaunchKey_WP_SAML2_Response_Service
 	 */
 	private $service;
 
@@ -65,6 +73,7 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 		        "+ovdBGpsmDp3IN1AKwd9/6EQ3XbQPyXoXpW0TCBzs/OxGqnhiJD9rROCtVl1SJze\r\n" .
 		        "LWllWSmosQFhsXwSO5ZlnechO+SMaxN7OrV7POOv8aRcpQ==\r\n" .
 		        "-----END CERTIFICATE-----\n";
+
 		static::$key = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1, array( 'type' => 'public' ) );
 		static::$key->loadKey( $cert, false, true );
 
@@ -184,7 +193,7 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 
 	public static function tearDownAfterClass() {
 		static::$response_data = null;
-		static::$key = null;
+		static::$key           = null;
 	}
 
 	public function test_get_name_returns_correct_value() {
@@ -209,14 +218,15 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 
 	public function data_provider_entity_in_audience() {
 		return array(
-			"ID in audience returns true" => array( "test-sso", true ),
+			"ID in audience returns true"      => array( "test-sso", true ),
 			"ID not in audience returns false" => array( "not-in", false ),
-			"Null ID returns false" => array( null, false )
+			"Null ID returns false"            => array( null, false )
 		);
 	}
 
 	/**
 	 * @dataProvider data_provider_entity_in_audience
+	 *
 	 * @param string $entity
 	 * @param bool $expected
 	 */
@@ -227,17 +237,18 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 
 	public function data_provider_timestamp_within_restrictions() {
 		return array(
-			"Below bottom is false" => array( strtotime( "2015-11-03T22:42:23Z" ), false ),
-			"Bottom is true" => array( strtotime( "2015-11-03T22:42:24Z" ), true ),
+			"Below bottom is false"              => array( strtotime( "2015-11-03T22:42:23Z" ), false ),
+			"Bottom is true"                     => array( strtotime( "2015-11-03T22:42:24Z" ), true ),
 			"Above bottom and below top is true" => array( strtotime( "2015-11-03T22:42:25Z" ), true ),
-			"Below top is true" => array( strtotime( "2015-11-03T22:57:23Z" ), true ),
-			"At top is false" => array( strtotime( "2015-11-03T22:57:24Z" ), false ),
-			"Above top is false" => array( strtotime( "2015-11-03T22:57:25Z" ), false ),
+			"Below top is true"                  => array( strtotime( "2015-11-03T22:57:23Z" ), true ),
+			"At top is false"                    => array( strtotime( "2015-11-03T22:57:24Z" ), false ),
+			"Above top is false"                 => array( strtotime( "2015-11-03T22:57:25Z" ), false ),
 		);
 	}
 
 	/**
 	 * @dataProvider data_provider_timestamp_within_restrictions
+	 *
 	 * @param int $timestamp
 	 * @param bool $expected
 	 */
@@ -248,14 +259,15 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 
 	public function data_provider_valid_destination() {
 		return array(
-			"Valid is true" => array( "http://127.0.0.1:8080/acs/post", true ),
+			"Valid is true"    => array( "http://127.0.0.1:8080/acs/post", true ),
 			"Invalid is false" => array( "http://127.0.0.1:8080/acs/post-not", false ),
-			"Null is false" => array( null, false ),
+			"Null is false"    => array( null, false ),
 		);
 	}
 
 	/**
 	 * @dataProvider data_provider_valid_destination
+	 *
 	 * @param string $destination
 	 * @param bool $expected
 	 */
@@ -267,7 +279,7 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	public function test_register_session_index_writes_data_to_the_table() {
 		$start = time();
 		$this->service->register_session_index();
-		$end = time();
+		$end      = time();
 		$expected = "INSERT INTO prefix_launchkey_sso_sessions VALUES (%s, %s) ON DUPLICATE KEY UPDATE seen = %s";
 		Phake::inOrder(
 			Phake::verify( $this->wpdb )->prepare(
@@ -351,18 +363,17 @@ class LaunchKey_WP_SAML2_Service_Test extends PHPUnit_Framework_TestCase {
 	public function test_is_session_index_registered_throws_exception_on_database_error() {
 		$this->wpdb->last_error = "Expected Error";
 		$this->service->is_session_index_registered();
-
 	}
 
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 		Phake::when( $this->container )->generateId( Phake::anyParameters() )->thenReturn( static::UNIQUE_ID );
-		$this->wpdb->prefix = "prefix_";
+		$this->wpdb->prefix     = "prefix_";
 		$this->wpdb->last_error = "";
 		Phake::when( $this->wpdb )->prepare( Phake::anyParameters() )->thenReturn( static::PREPARED_STARTEMENT );
 		Phake::when( $this->facade )->get_wpdb()->thenReturn( $this->wpdb );
 		SAML2_Compat_ContainerSingleton::setContainer( $this->container );
-		$this->service = new LaunchKey_WP_SAML2_Service( self::$key, $this->facade );
+		$this->service = new LaunchKey_WP_SAML2_Response_Service( self::$key, $this->facade );
 		$this->service->load_saml_response( self::$response_data );
 	}
 
