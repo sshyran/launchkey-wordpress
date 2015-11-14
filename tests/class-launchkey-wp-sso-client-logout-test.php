@@ -6,11 +6,6 @@
  */
 class LaunchKey_WP_SSO_Client_Logout_Test extends LaunchKey_WP_SSO_Client_Test_Abstract {
 
-	/**
-	 * @var stdClass
-	 */
-	private $user;
-
 	public function test_nothing_happens_when_no_current_user() {
 		Phake::when( $this->facade )->wp_get_current_user( Phake::anyParameters() )->thenReturn( null );
 		$this->client->logout();
@@ -45,7 +40,6 @@ class LaunchKey_WP_SSO_Client_Logout_Test extends LaunchKey_WP_SSO_Client_Test_A
 
 	protected function setUp() {
 		parent::setUp();
-		$this->user = new stdClass();
 		$this->user->ID = "User ID";
 		Phake::when( $this->facade )->wp_get_current_user( Phake::anyParameters() )->thenReturn( $this->user );
 	}

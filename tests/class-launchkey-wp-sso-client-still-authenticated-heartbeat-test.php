@@ -4,7 +4,7 @@
  * @author Adam Englander <adam@launchkey.com>
  * @copyright 2015 LaunchKey, Inc. See project license for usage.
  */
-class LaunchKey_WP_Native_Client_Still_Authenticated_Heartbeat_Test extends LaunchKey_WP_Native_Client_Test_Abstract {
+class LaunchKey_WP_SSO_Client_Still_Authenticated_Heartbeat_Test extends LaunchKey_WP_SSO_Client_Test_Abstract {
 
 	public function test_user_logged_in_does_nothing() {
 		Phake::when( $this->facade )->is_user_logged_in()->thenReturn( false );
@@ -55,7 +55,7 @@ class LaunchKey_WP_Native_Client_Still_Authenticated_Heartbeat_Test extends Laun
 		Phake::when( $this->facade )->is_user_logged_in()->thenReturn( true );
 		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 'false' );
 		$this->client->launchkey_still_authenticated_heartbeat();
-		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_auth', null );
+		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_sso_session', null );
 		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_authorized', null );
 		Phake::verify( $this->facade )->wp_logout();
 	}

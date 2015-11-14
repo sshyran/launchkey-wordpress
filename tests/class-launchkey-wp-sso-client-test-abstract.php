@@ -38,9 +38,27 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 	protected $template;
 	/**
 	 * @Mock
-	 * @var LaunchKey_WP_SAML2_Service
+	 * @var LaunchKey_WP_SAML2_Request_Service
 	 */
-	protected $saml_service;
+	protected $saml_request_service;
+
+	/**
+	 * @Mock
+	 * @var LaunchKey_WP_SAML2_Response_Service
+	 */
+	protected $saml_response_service;
+
+	/**
+	 * @Mock
+	 * @var wpdb
+	 */
+	protected $wpdb;
+
+	/**
+	 * @Mock
+	 * @var WP_User
+	 */
+	protected $user;
 
 	/**
 	 * @var LaunchKey_WP_SSO_Client
@@ -50,11 +68,18 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 
+		Phake::when( $this->wpdb )->get_var( Phake::anyParameters() )->thenReturn( 'true' );
+		$this->wpdb->usermeta = 'usermeta_table_name';
+
+		$this->user->ID = 'User ID';
+
 		$this->client = new LaunchKey_WP_SSO_Client(
 			$this->facade,
 			$this->template,
 			static::ENTITY_ID,
-			$this->saml_service,
+			$this->saml_response_service,
+			$this->saml_request_service,
+			$this->wpdb,
 			static::LOGIN_URL,
 			static::LOGOUT_URL,
 			static::ERROR_URL
@@ -62,9 +87,12 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 	}
 
 	protected function tearDown() {
-		$this->client = null;
-		$this->facade = null;
-		$this->template = null;
-		$this->saml_service = null;
+		$this->user                 = null;
+		$this->client               = null;
+		$this->facade               = null;
+		$this->template             = null;
+		$this->wpdb                 = null;
+		$this->saml_response_service = null;
+		$this->saml_request_service = null;
 	}
 }

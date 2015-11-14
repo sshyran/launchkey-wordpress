@@ -25,4 +25,20 @@ class LaunchKey_WP_SSO_Client_Test extends LaunchKey_WP_SSO_Client_Test_Abstract
 		$this->client->register_actions();
 		Phake::verify( $this->facade )->add_filter( 'wp_logout', array( $this->client, 'logout' ) );
 	}
+
+	public function test_register_actions_registers_launchkey_authentication_check() {
+		$this->client->register_actions();
+		Phake::verify( $this->facade )->add_filter( 'init', array(
+				$this->client,
+				'launchkey_still_authenticated_page_load'
+		), 999, 3 );
+	}
+
+	public function test_register_actions_registers_launchkey_heartbeat_authentication_check() {
+		$this->client->register_actions();
+		Phake::verify( $this->facade )->add_filter( 'heartbeat_received', array(
+				$this->client,
+				'launchkey_still_authenticated_heartbeat'
+		) );
+	}
 }

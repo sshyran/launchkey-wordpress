@@ -17,6 +17,10 @@ if ( ! class_exists( 'WP_User' ) ) {
 		public function __construct( $id ) {
 			$this->ID = $id;
 		}
+
+		public function get( $key ) {
+
+		}
 	}
 }
 

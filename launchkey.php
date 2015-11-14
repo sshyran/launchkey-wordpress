@@ -3,13 +3,14 @@
   Plugin Name: LaunchKey
   Plugin URI: https://wordpress.org/plugins/launchkey/
   Description:  LaunchKey eliminates the need and liability of passwords by letting you log in and out of WordPress with your smartphone or tablet.
-  Version: 1.1.4
+  Version: 1.2.0
   Author: LaunchKey, Inc.
   Text Domain: launchkey
   Author URI: https://launchkey.com
   License: GPLv2 Copyright (c) 2014 LaunchKey, Inc.
  */
 require_once __DIR__ . '/vendor/autoload.php';
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 /**
  * Create/update tables utilized by the plugin
@@ -32,19 +33,26 @@ function launchkey_create_tables() {
 function launchkey_cron() {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'launchkey_sso_sessions';
-	$dt = new DateTime("- 1 hour");
-	$dt->setTimezone(new DateTimeZone("UTC"));
+	$dt         = new DateTime( "- 1 hour" );
+	$dt->setTimezone( new DateTimeZone( "UTC" ) );
 
 	$wpdb->query(
-			$wpdb->prepare("DELETE FROM {$table_name} WHERE seen < %s", $dt->format("Y-m-d H:i:s"))
+		$wpdb->prepare( "DELETE FROM {$table_name} WHERE seen < %s", $dt->format( "Y-m-d H:i:s" ) )
 	);
 }
 
 function launchkey_cron_remove() {
 	$timestamp = wp_next_scheduled( 'launchkey_cron_hook' );
-	wp_unschedule_event($timestamp, 'launchkey_cron_hook' );
+	wp_unschedule_event( $timestamp, 'launchkey_cron_hook' );
 }
 
+function launchkey_is_mu_plugin() {
+	return strpos( __FILE__, WPMU_PLUGIN_DIR ) === 0;
+}
+
+function launchkey_is_activated() {
+	return is_plugin_active( __FILE__ ) || launchkey_is_mu_plugin();
+}
 
 /**
  * Initialize LaunchKey WordPress Plugin
@@ -56,6 +64,7 @@ function launchkey_cron_remove() {
  * Enclose plug-in initialization to protect against global variable corruption
  */
 function launchkey_plugin_init() {
+	global $wpdb;
 
 	/**
 	 * Register activation hooks for the plugin
@@ -73,17 +82,17 @@ function launchkey_plugin_init() {
 	 * @since 1.1.0
 	 * Add the cron hook and schedule if not scheduled
 	 */
-	add_action( 'launchkey_cron_hook' , 'launchkey_cron' );
-	if( ! wp_next_scheduled( 'launchkey_cron_hook' ) ) {
+	add_action( 'launchkey_cron_hook', 'launchkey_cron' );
+	if ( ! wp_next_scheduled( 'launchkey_cron_hook' ) ) {
 		wp_schedule_event( time(), 'hourly', 'launchkey_cron_hook' );
 	}
 
 	/**
 	 * Handle upgrades if in the admin and not the latest version
 	 */
-	if ( is_admin() ) {
+	if ( is_admin() && launchkey_is_activated() ) {
 		$options = get_option( LaunchKey_WP_Admin::OPTION_KEY );
-		if ( $options && $options[LaunchKey_WP_Options::OPTION_VERSION] < 1.1 ) {
+		if ( $options && $options[ LaunchKey_WP_Options::OPTION_VERSION ] < 1.1 ) {
 			launchkey_create_tables();
 		}
 	}
@@ -161,19 +170,22 @@ function launchkey_plugin_init() {
 	 * @since 1.0.0
 	 */
 	if ( get_option( 'launchkey_app_key' ) || get_option( 'launchkey_secret_key' ) ) {
-		$launchkey_options[LaunchKey_WP_Options::OPTION_ROCKET_KEY] = get_option( 'launchkey_app_key' );
-		$launchkey_options[LaunchKey_WP_Options::OPTION_SECRET_KEY] = get_option( 'launchkey_secret_key' );
-		$launchkey_options[LaunchKey_WP_Options::OPTION_SSL_VERIFY] = ( defined( 'LAUNCHKEY_SSLVERIFY' ) && LAUNCHKEY_SSLVERIFY ) || true;
-		$launchkey_options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] = LaunchKey_WP_Implementation_Type::OAUTH;
-		$launchkey_options[LaunchKey_WP_Options::OPTION_LEGACY_OAUTH] = true;
+		$launchkey_options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ]          = get_option( 'launchkey_app_key' );
+		$launchkey_options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ]          = get_option( 'launchkey_secret_key' );
+		$launchkey_options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ]          =
+			( defined( 'LAUNCHKEY_SSLVERIFY' ) && LAUNCHKEY_SSLVERIFY ) || true;
+		$launchkey_options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] =
+			LaunchKey_WP_Implementation_Type::OAUTH;
+		$launchkey_options[ LaunchKey_WP_Options::OPTION_LEGACY_OAUTH ]        = true;
 
 		if ( update_option( LaunchKey_WP_Admin::OPTION_KEY, $launchkey_options ) ) {
 			delete_option( 'launchkey_app_key' );
 			delete_option( 'launchkey_secret_key' );
 		} else {
-			throw new RuntimeException( 'Unable to upgrade LaunchKey meta-data.  Failed to save setting ' . LaunchKey_WP_Admin::OPTION_KEY );
+			throw new RuntimeException( 'Unable to upgrade LaunchKey meta-data.  Failed to save setting ' .
+			                            LaunchKey_WP_Admin::OPTION_KEY );
 		}
-	} elseif ( !get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
+	} elseif ( ! get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
 		add_option( LaunchKey_WP_Admin::OPTION_KEY, array() );
 	}
 
@@ -188,43 +200,50 @@ function launchkey_plugin_init() {
 	libxml_disable_entity_loader( true );
 
 	// Get the plugin options to determine which authentication implementation should be utilized
-	$options = get_option( LaunchKey_WP_Admin::OPTION_KEY );
-	$logger = new LaunchKey_WP_Logger( $facade );
+	$options          = get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	$logger           = new LaunchKey_WP_Logger( $facade );
 	$launchkey_client = null;
-	$client = null;
+	$client           = null;
 
 	// Only register the pieces that need to interact with LaunchKey if it's been configured
-	if ( LaunchKey_WP_Implementation_Type::SSO === $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] && !empty( $options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID] ) ) {
+	if ( LaunchKey_WP_Implementation_Type::SSO === $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] &&
+	     ! empty( $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ] )
+	) {
 
 		$container = new LaunchKey_WP_SAML2_Container( $logger );
 		SAML2_Compat_ContainerSingleton::setContainer( $container );
 		$securityKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1, array( 'type' => 'public' ) );
-		$securityKey->loadKey( $options[LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE], false, true );
-		$saml_service = new LaunchKey_WP_SAML2_Service( $securityKey, $facade );
+		$securityKey->loadKey( $options[ LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE ], false, true );
+		$saml_response_service = new LaunchKey_WP_SAML2_Response_Service( $securityKey, $facade );
+		$saml_request_service  = new LaunchKey_WP_SAML2_Request_Service( $securityKey );
+
 		$client = new LaunchKey_WP_SSO_Client(
 			$facade,
 			$template,
-			$options[LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID],
-			$saml_service,
-			$options[LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL],
-			$options[LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL],
-			$options[LaunchKey_WP_Options::OPTION_SSO_ERROR_URL]
+			$options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
+			$saml_response_service,
+			$saml_request_service,
+			$wpdb,
+			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
+			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
+			$options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ]
 		);
-
-	} elseif ( LaunchKey_WP_Implementation_Type::OAUTH === $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] && !empty( $options[LaunchKey_WP_Options::OPTION_SECRET_KEY] ) ) {
+	} elseif ( LaunchKey_WP_Implementation_Type::OAUTH ===
+	           $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] &&
+	           ! empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] )
+	) {
 		/**
 		 * If the implementation type is OAuth, use the OAuth client
 		 * @see LaunchKey_WP_OAuth_Client
 		 */
 		$client = new LaunchKey_WP_OAuth_Client( $facade, $template );
-
-	} elseif ( !empty( $options[LaunchKey_WP_Options::OPTION_SECRET_KEY] ) ) {
+	} elseif ( ! empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] ) ) {
 
 		$launchkey_client = \LaunchKey\SDK\Client::wpFactory(
-			$options[LaunchKey_WP_Options::OPTION_ROCKET_KEY],
-			$options[LaunchKey_WP_Options::OPTION_SECRET_KEY],
-			$options[LaunchKey_WP_Options::OPTION_PRIVATE_KEY],
-			$options[LaunchKey_WP_Options::OPTION_SSL_VERIFY]
+			$options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
+			$options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ],
+			$options[ LaunchKey_WP_Options::OPTION_PRIVATE_KEY ],
+			$options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ]
 		);
 
 		$client = new LaunchKey_WP_Native_Client( $launchkey_client, $facade, $template, $language_domain );
@@ -234,7 +253,7 @@ function launchkey_plugin_init() {
 				'launchkey-script',
 				plugins_url( '/public/launchkey-login.js', __FILE__ ),
 				array( 'jquery' ),
-				'1.1.0',
+				'1.1.1',
 				true
 			);
 		} );
@@ -258,7 +277,8 @@ function launchkey_plugin_init() {
 		 *
 		 * @see LaunchKey_WP_User_Profile
 		 */
-		$profile = new LaunchKey_WP_User_Profile( $facade, $template, $language_domain, $options[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] );
+		$profile = new LaunchKey_WP_User_Profile( $facade, $template, $language_domain,
+			$options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] );
 		$profile->register_actions();
 
 		/**
@@ -266,7 +286,7 @@ function launchkey_plugin_init() {
 		 *
 		 * @since 1.0.0
 		 */
-		if ( !has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
+		if ( ! has_action( 'login_enqueue_scripts', 'wp_print_styles' ) ) {
 			add_action( 'login_enqueue_scripts', 'wp_print_styles', 11 );
 		}
 	}
@@ -308,8 +328,17 @@ function launchkey_plugin_init() {
 		);
 	} );
 
+	/**
+	 * Handle activation when a "must use" plugin
+	 */
+	if ( launchkey_is_mu_plugin() ) {
+		$mu_activated_option = "launchkey_activated";
+		if ( ! get_option( $mu_activated_option ) ) {
+			do_action( "activate_" . plugin_basename( __FILE__ ) );
+			add_option( $mu_activated_option, true );
+		}
+	}
 }
 
 // Run the initialization function above
 launchkey_plugin_init();
-
