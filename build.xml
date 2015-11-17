@@ -84,6 +84,12 @@
                     <exclude name="src/*/**" />
                     <exclude name="LICENSE" />
                 </fileset>
+                <fileset dir="./build/package/vendor/symfony/event-dispatcher">
+                    <include name="*" />
+                    <exclude name="*Event*" />
+                    <include name="Tests/**" />
+                    <exclude name="LICENSE" />
+                </fileset>
             </delete>
 
 

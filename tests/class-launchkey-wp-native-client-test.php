@@ -166,4 +166,36 @@ class LaunchKey_WP_Native_Client_Test extends LaunchKey_WP_Native_Client_Test_Ab
 			array( 'app_display_name' => 'Expected Display Name' )
 		);
 	}
+
+	public function test_register_registers_uses_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_Native_Client(
+				$this->sdk_client, $this->facade, $this->template, $this->language_domain = 'Test Language Domain', false
+		);
+		$client->register_actions();
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_register_registers_uses_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_Native_Client(
+				$this->sdk_client, $this->facade, $this->template, $this->language_domain = 'Test Language Domain', true
+		);
+		$client->register_actions();
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_show_native_login_hint_uses_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_Native_Client(
+				$this->sdk_client, $this->facade, $this->template, $this->language_domain = 'Test Language Domain', false
+		);
+		$client->show_native_login_hint();
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_show_native_login_hint_uses_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_Native_Client(
+				$this->sdk_client, $this->facade, $this->template, $this->language_domain = 'Test Language Domain', true
+		);
+		$client->show_native_login_hint();
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
 }

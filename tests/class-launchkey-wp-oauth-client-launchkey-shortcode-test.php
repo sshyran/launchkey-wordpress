@@ -64,7 +64,7 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_ShortCode_Test extends PHPUnit_Framewo
 
 	protected function setUp() {
 		Phake::initAnnotations( $this );
-		$this->client = Phake::partialMock( 'LaunchKey_WP_OAuth_Client', $this->facade, $this->template );
+		$this->client = Phake::partialMock( 'LaunchKey_WP_OAuth_Client', $this->facade, $this->template, false );
 	}
 
 	protected function tearDown() {

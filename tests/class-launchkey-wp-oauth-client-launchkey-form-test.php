@@ -224,6 +224,18 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_Form_Test extends PHPUnit_Framework_Te
 		$this->assertStringMatchesFormat( '%Sredirect_uri=admin+url%S', $actual_url );
 	}
 
+	public function test_uses_get_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
+		$client->launchkey_form();
+		Phake::verify( $this->facade )->get_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_uses_get_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, true);
+		$client->launchkey_form();
+		Phake::verify( $this->facade )->get_site_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 		$this->options = array(LaunchKey_WP_Options::OPTION_ROCKET_KEY => 12345, LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME => 'App Display Name');
@@ -236,7 +248,7 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_Form_Test extends PHPUnit_Framework_Te
 			return "Rendered [{$template}]";
 		});
 
-		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template );
+		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
 	}
 
 	protected function tearDown() {

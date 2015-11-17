@@ -58,6 +58,11 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	private $error_url;
 
 	/**
+	 * @var bool
+	 */
+	private $is_multi_site;
+
+	/**
 	 * LaunchKey_WP_SSO_Client constructor.
 	 *
 	 * @param LaunchKey_WP_Global_Facade $wp_facade
@@ -68,6 +73,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	 * @param string $login_url URL to send user when logging in in via SSO
 	 * @param string $logout_url URL to send user after logout when logged in via SSO
 	 * @param string $error_url URL to send user when a login/logout error occurs
+	 * @param bool $is_multi_site
 	 */
 	public function __construct(
 		LaunchKey_WP_Global_Facade $wp_facade,
@@ -78,7 +84,8 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		wpdb $wpdb,
 		$login_url,
 		$logout_url,
-		$error_url
+		$error_url,
+		$is_multi_site
 	) {
 		$this->wp_facade             = $wp_facade;
 		$this->template              = $template;
@@ -89,6 +96,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		$this->login_url             = $login_url;
 		$this->logout_url            = $logout_url;
 		$this->error_url             = $error_url;
+		$this->is_multi_site         = $is_multi_site;
 	}
 
 
@@ -188,7 +196,8 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		// Send it off using the HTTP-Redirect binding
 		$binding = new SAML2_HTTPRedirect();
 		$binding->setDestination( $this->login_url );
-		$options = $this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+		$options = $this->is_multi_site ? $this->wp_facade->get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) :
+			$this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 
 		$this->wp_facade->_echo( $this->template->render_template( 'launchkey-form', array(
 			'class'               => $class,
@@ -336,11 +345,15 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 
 			// If we don't have a user, create one
 			if ( ! ( $user instanceof WP_User ) ) {
-				$roles     = $this->saml_response_service->get_attribute( 'role' );
+				$role      = $this->get_sso_attribute( 'role' );
+				$role      = $role ? $this->translate_role( $role ) : false;
 				$user_data = array(
 					'user_login' => $this->saml_response_service->get_name(),
 					'user_pass'  => '',
-					'role'       => empty( $roles ) ? false : $this->translate_role( $roles[0] )
+					'role'       => $role,
+					'user_email' => $this->get_sso_attribute( 'user_email' ),
+					'first_name' => $this->get_sso_attribute( 'first_name' ),
+					'last_name'  => $this->get_sso_attribute( 'last_name' ),
 				);
 				$user_id   = $this->wp_facade->wp_insert_user( $user_data );
 				// Unset the password - wp_insert_user always generates a hash - it's misleading
@@ -367,6 +380,8 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	 * @param string $saml_request
 	 *
 	 * @return null
+	 *
+	 * @since 1.1.0
 	 */
 	private function handle_saml_request( $saml_request ) {
 		$this->saml_request_service->load_saml_request( $saml_request );
@@ -397,7 +412,9 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 	 * @return boolean
 	 */
 	private function get_user_authorized( $user_id ) {
-		$value = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT meta_value FROM {$this->wpdb->usermeta} WHERE user_id = %s AND meta_key = 'launchkey_authorized' LIMIT 1", $user_id ) );
+		$value =
+			$this->wpdb->get_var( $this->wpdb->prepare( "SELECT meta_value FROM {$this->wpdb->usermeta} WHERE user_id = %s AND meta_key = 'launchkey_authorized' LIMIT 1",
+				$user_id ) );
 		if ( 'true' === $value ) {
 			$authorized = true;
 		} elseif ( 'false' === $value ) {
@@ -407,5 +424,11 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		}
 
 		return $authorized;
+	}
+
+	private function get_sso_attribute( $key ) {
+		$values = $this->saml_response_service->get_attribute( $key );
+
+		return $values ? $values[0] : null;
 	}
 }

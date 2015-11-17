@@ -154,7 +154,7 @@ class LaunchKey_WP_Admin_Check_Option_SSO_Test extends PHPUnit_Framework_TestCas
 			"idp.xml"
 		);
 
-		$this->admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain = 'launchkey' );
+		$this->admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain = 'launchkey', false );
 	}
 
 	protected function tearDown() {

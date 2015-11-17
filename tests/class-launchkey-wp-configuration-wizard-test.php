@@ -32,6 +32,11 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	 */
 	private $wizard;
 
+	/**
+	 * @var bool
+	 */
+	private $is_multi_site;
+
 	public function test_register_actions_registers_verify_native_ajax_callback_handler() {
 		$this->wizard->register_actions();
 		Phake::verify( $this->facade )->add_action(
@@ -79,15 +84,37 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 		$this->option_data[LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE] = LaunchKey_WP_Implementation_Type::OAUTH;
 		$this->wizard->enqueue_verify_configuration_script();
 		Phake::verify( $this->facade )->wp_localize_script(
-			'launchkey-config-verifier-native-script',
-			'launchkey_verifier_config',
-			array(
-				'url' => 'Admin URL',
-				'implementation_type' => LaunchKey_WP_Implementation_Type::OAUTH,
-				'nonce' => 'Nonce',
-				'is_configured' => false,
-			)
+				'launchkey-config-verifier-native-script',
+				'launchkey_verifier_config',
+				array(
+						'url' => 'Admin URL',
+						'implementation_type' => LaunchKey_WP_Implementation_Type::OAUTH,
+						'nonce' => 'Nonce',
+						'is_configured' => false,
+				)
 		);
+	}
+
+	public function test_enqueue_verifier_native_script_gets_launchkey_option_when_not_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				false,
+				$this->client
+		);
+		$wizard->enqueue_verify_configuration_script();
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_enqueue_verifier_native_script_gets_launchkey_site_option_when_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				true,
+				$this->client
+		);
+		$wizard->enqueue_verify_configuration_script();
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 
 	public function test_enqueue_verifier_native_script_supplies_admin_url_correct_value() {
@@ -218,14 +245,37 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 		);
 	}
 
+	public function test_enqueue_wizard_script_gets_launchkey_option_when_not_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				false,
+				$this->client
+		);
+		$wizard->enqueue_wizard_script();
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
 
+	public function test_enqueue_wizard_script_gets_launchkey_site_option_when_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				true,
+				$this->client
+		);
+		$wizard->enqueue_wizard_script();
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
 	protected function setUp() {
 		$that = $this;
 		Phake::initAnnotations( $this );
 
+		$this->is_multi_site = false;
+
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
 			$this->admin,
+			$this->is_multi_site,
 			$this->client
 		);
 
@@ -248,6 +298,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 		$this->wizard = null;
 		$this->facade = null;
 		$this->admin = null;
+		$this->is_multi_site = false;
 		$this->client = null;
 	}
 }

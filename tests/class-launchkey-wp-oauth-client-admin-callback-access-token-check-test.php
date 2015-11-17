@@ -291,7 +291,7 @@ class LaunchKey_WP_Oauth_Client_Admin_Callback_Access_Token_Check_Test extends P
 
 		Phake::when( $this->facade )->current_time( Phake::anyParameters() )->thenReturn( 1000000 );
 
-		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template );
+		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
 	}
 
 	protected function tearDown() {

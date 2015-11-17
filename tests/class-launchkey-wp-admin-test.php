@@ -29,20 +29,38 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 	 */
 	private $language_domain;
 
-	public function test_register_actions_adds_filter_for_plugin_action_links() {
+	public function test_register_actions_adds_filter_for_plugin_action_links_when_not_multi_site() {
 		Phake::when( $this->facade )->plugin_basename( Phake::anyParameters() )->thenReturn( 'BASENAME' );
 		Phake::when( $this->facade )->plugin_dir_path( Phake::anyParameters() )->thenReturn( 'DIRPATH' );
 		$this->admin->register_actions();
 		$reflection_class = new ReflectionClass( 'LaunchKey_WP_Admin' );
 		Phake::inOrder(
-			Phake::verify( $this->facade )->plugin_dir_path(
-				dirname( $reflection_class->getFileName() )
-			),
-			Phake::verify( $this->facade )->plugin_basename( 'DIRPATH' . 'launchkey.php' ),
-			Phake::verify( $this->facade )->add_filter( 'plugin_action_links_BASENAME', array(
-				$this->admin,
-				'add_action_links'
-			) )
+				Phake::verify( $this->facade )->plugin_dir_path(
+						dirname( $reflection_class->getFileName() )
+				),
+				Phake::verify( $this->facade )->plugin_basename( 'DIRPATH' . 'launchkey.php' ),
+				Phake::verify( $this->facade )->add_filter( 'plugin_action_links_BASENAME', array(
+						$this->admin,
+						'add_action_links'
+				) )
+		);
+	}
+
+	public function test_register_actions_adds_filter_for_network_admin_plugin_action_links_when_multi_site() {
+		Phake::when( $this->facade )->plugin_basename( Phake::anyParameters() )->thenReturn( 'BASENAME' );
+		Phake::when( $this->facade )->plugin_dir_path( Phake::anyParameters() )->thenReturn( 'DIRPATH' );
+		$admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, true );
+		$admin->register_actions();
+		$reflection_class = new ReflectionClass( 'LaunchKey_WP_Admin' );
+		Phake::inOrder(
+				Phake::verify( $this->facade )->plugin_dir_path(
+						dirname( $reflection_class->getFileName() )
+				),
+				Phake::verify( $this->facade )->plugin_basename( 'DIRPATH' . 'launchkey.php' ),
+				Phake::verify( $this->facade )->add_filter( 'network_admin_plugin_action_links_BASENAME', array(
+						$admin,
+						'add_action_links'
+				) )
 		);
 	}
 
@@ -81,20 +99,52 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_launchkey_plugin_page_registers_create_admin_page() {
+	public function test_add_launchkey_admin_menus_adds_proper_options_page() {
 		$this->admin->add_launchkey_admin_menus();
 		Phake::verify( $this->facade )->add_options_page( 'LaunchKey', 'LaunchKey', 'manage_options', 'launchkey-settings',
-			array( $this->admin, 'create_launchkey_settings_page' ) );
+				array( $this->admin, 'create_launchkey_settings_page' ) );
 	}
 
-	public function test_register_actions_adds_oauth_notice() {
+	public function test_add_launchkey_network_admin_menus_adds_proper_network_settings_page() {
+		$this->admin->add_launchkey_network_admin_menus();
+		Phake::verify( $this->facade )->add_submenu_page(
+				'settings.php', 'LaunchKey', 'LaunchKey', 'manage_options', 'launchkey-settings',
+				array( $this->admin, 'create_launchkey_settings_page' ) );
+	}
+
+	public function test_register_actions_adds_oauth_warning() {
 		$this->admin->register_actions();
 		Phake::verify( $this->facade )->add_action( 'admin_notices', array(
-			$this->admin,
-			'oauth_warning'
+				$this->admin,
+				'oauth_warning'
 		) );
 	}
 
+	public function test_register_actions_adds_network_oauth_warning_when_multi_site() {
+		$admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, true );
+		$admin->register_actions();
+		Phake::verify( $this->facade )->add_action( 'network_admin_notices', array(
+				$admin,
+				'oauth_warning'
+		) );
+	}
+
+	public function test_register_actions_adds_activate_notice() {
+		$this->admin->register_actions();
+		Phake::verify( $this->facade )->add_action( 'admin_notices', array(
+				$this->admin,
+				'activate_notice'
+		) );
+	}
+
+	public function test_register_actions_adds_network_activate_notice_when_multi_site() {
+		$admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, true );
+		$admin->register_actions();
+		Phake::verify( $this->facade )->add_action( 'network_admin_notices', array(
+				$admin,
+				'activate_notice'
+		) );
+	}
 
 	function provider_non_oauth_implementation_types() {
 		return array(
@@ -178,6 +228,18 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 		$this->assertArrayNotHasKey( 'edit', $actual );
 	}
 
+	public function test_register_actions_registers_add_launchkey_admin_menus_method_for_admin_menu_when_not_multisite() {
+		$admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, false );
+		$admin->register_actions();
+		Phake::verify( $this->facade )->add_action( 'admin_menu', array( $admin, 'add_launchkey_admin_menus' ) );
+	}
+
+	public function test_register_actions_registers_add_launchkey_network_admin_menus_method_for_admin_menu_when_multi_site1() {
+		$admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, true );
+		$admin->register_actions();
+		Phake::verify( $this->facade )->add_action( 'network_admin_menu', array( $admin, 'add_launchkey_network_admin_menus' ) );
+	}
+
 
 	protected function setUp() {
 		Phake::initAnnotations( $this );
@@ -204,7 +266,7 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 		Phake::when( $this->facade )->parse_url( Phake::anyParameters() )->thenReturn( "Parsed URL" );
 
 		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( (object) array( 'user_login' => "login" ) );
-		$this->admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain );
+		$this->admin = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain, false );
 	}
 
 	protected function tearDown() {
