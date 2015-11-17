@@ -48,11 +48,13 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( null );
 		$this->client->authenticate( null, null, null );
 		Phake::verify( $this->facade )->wp_insert_user( Phake::capture( $user_data ) );
+
 		return $user_data;
 	}
 
 	/**
 	 * @depends test_user_login_creates_user_when_none_found
+	 *
 	 * @param array $user_data
 	 */
 	public function test_when_user_login_creates_user_it_uses_name_as_username( array $user_data ) {
@@ -62,6 +64,7 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 
 	/**
 	 * @depends test_user_login_creates_user_when_none_found
+	 *
 	 * @param array $user_data
 	 */
 	public function test_when_user_login_creates_user_it_sets_empty_password( array $user_data ) {
@@ -99,7 +102,8 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 	 */
 	public function test_when_user_login_creates_user_sets_role_to_administrator_when_role_is_admin() {
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( null );
-		Phake::when( $this->saml_response_service )->get_attribute( Phake::anyParameters() )->thenReturn( array( "admin" ) );
+		Phake::when( $this->saml_response_service )->get_attribute( Phake::anyParameters() )
+		     ->thenReturn( array( "admin" ) );
 		$this->client->authenticate( null, null, null );
 		Phake::verify( $this->saml_response_service )->get_attribute( "role" );
 		Phake::verify( $this->facade )->wp_insert_user( Phake::capture( $user_data ) );
@@ -122,7 +126,8 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 	}
 
 	public function test_entity_not_in_audience_redirects_to_error_url_and_exits() {
-		Phake::when( $this->saml_response_service )->is_entity_in_audience( Phake::anyParameters() )->thenReturn( false );
+		Phake::when( $this->saml_response_service )->is_entity_in_audience( Phake::anyParameters() )
+		     ->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
 			Phake::verify( $this->saml_response_service )->is_entity_in_audience( static::ENTITY_ID ),
@@ -137,7 +142,8 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 	}
 
 	public function test_timestamp_not_within_restrictions_redirects_to_error_url_and_exits() {
-		Phake::when( $this->saml_response_service )->is_timestamp_within_restrictions( Phake::anyParameters() )->thenReturn( false );
+		Phake::when( $this->saml_response_service )->is_timestamp_within_restrictions( Phake::anyParameters() )
+		     ->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
 			Phake::verify( $this->saml_response_service )->is_timestamp_within_restrictions( static::NOW ),
@@ -152,7 +158,8 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 	}
 
 	public function test_invalid_destination_redirects_to_error_url_and_exits() {
-		Phake::when( $this->saml_response_service )->is_valid_destination( Phake::anyParameters() )->thenReturn( false );
+		Phake::when( $this->saml_response_service )->is_valid_destination( Phake::anyParameters() )
+		     ->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
 			Phake::verify( $this->saml_response_service )->is_valid_destination( static::SSO_POST_URL ),
@@ -181,10 +188,59 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->saml_response_service )->is_session_index_registered()->thenReturn( true );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_response_service )->is_session_index_registered(),
-				Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
-				Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
+			Phake::verify( $this->saml_response_service )->is_session_index_registered(),
+			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
+			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
 		);
+	}
+
+	public function test_not_saml_triggered_with_no_username_no_password_and_no_current_user_does_nothing() {
+		unset( $_REQUEST['SAMLResponse'] );
+		unset( $_REQUEST['SAMLRequest'] );
+		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( null );
+		$this->client->authenticate( $this->user, null, null );
+		Phake::verify( $this->facade )->wp_get_current_user();
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
+	public function test_not_saml_triggered_with_no_username_no_password_and_current_user_but_no_launchkey_username_does_nothing() {
+		unset( $_REQUEST['SAMLResponse'] );
+		unset( $_REQUEST['SAMLRequest'] );
+		$this->user->launchkey_username = null;
+		$this->user->launchkey_authorized = null;
+		$this->client->authenticate( $this->user, null, null );
+		Phake::verify( $this->facade )->wp_get_current_user();
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
+	public function test_not_saml_triggered_with_no_username_no_password_and_current_user_with_launchkey_username_and_no_launchkey_authorized_does_nothing() {
+		unset( $_REQUEST['SAMLResponse'] );
+		unset( $_REQUEST['SAMLRequest'] );
+		$this->user->launchkey_username = "Not null";
+		$this->user->launchkey_authorized = null;
+		$this->client->authenticate( $this->user, null, null );
+		Phake::verify( $this->facade )->wp_get_current_user();
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
+	public function test_not_saml_triggered_with_no_username_no_password_and_current_user_with_launchkey_username_and_launchkey_authorized_not_false_does_nothing() {
+		unset( $_REQUEST['SAMLResponse'] );
+		unset( $_REQUEST['SAMLRequest'] );
+		$this->user->launchkey_username = "Not null";
+		$this->user->launchkey_authorized = "true";
+		$this->client->authenticate( $this->user, null, null );
+		Phake::verify( $this->facade )->wp_get_current_user();
+		Phake::verifyNoFurtherInteraction( $this->facade );
+	}
+
+	public function test_not_saml_triggered_with_no_username_no_password_and_current_user_with_launchkey_username_and_launchkey_authorized_is_false_logs_out_user() {
+		unset( $_REQUEST['SAMLResponse'] );
+		unset( $_REQUEST['SAMLRequest'] );
+		$this->user->launchkey_username = "Not null";
+		$this->user->launchkey_authorized = "false";
+		$this->client->authenticate( $this->user, null, null );
+		Phake::verify( $this->facade )->wp_get_current_user();
+		Phake::verify( $this->facade )->wp_logout();
 	}
 
 	protected function setUp() {
@@ -192,20 +248,24 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 
 		$this->user->ID = "User ID";
 		foreach ( $_REQUEST as $key => $value ) {
-			unset( $_REQUEST[$key] );
+			unset( $_REQUEST[ $key ] );
 		}
 
 		$_REQUEST["SAMLResponse"] = self::SAML_RESPONSE;
 
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( $this->user );
+		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( $this->user );
 		Phake::when( $this->facade )->time( Phake::anyParameters() )->thenReturn( static::NOW );
 		Phake::when( $this->facade )->wp_login_url()->thenReturn( static::SSO_POST_URL );
 
 		Phake::when( $this->saml_response_service )->get_session_index()->thenReturn( static::SESSION_INDEX );
 		Phake::when( $this->saml_response_service )->get_name()->thenReturn( static::NAME );
-		Phake::when( $this->saml_response_service )->get_attribute( Phake::anyParameters() )->thenReturn( array( static::ATTRIBUTE_VALUE ) );
-		Phake::when( $this->saml_response_service )->is_entity_in_audience( Phake::anyParameters() )->thenReturn( true );
-		Phake::when( $this->saml_response_service )->is_timestamp_within_restrictions( Phake::anyParameters() )->thenReturn( true );
+		Phake::when( $this->saml_response_service )->get_attribute( Phake::anyParameters() )
+		     ->thenReturn( array( static::ATTRIBUTE_VALUE ) );
+		Phake::when( $this->saml_response_service )->is_entity_in_audience( Phake::anyParameters() )
+		     ->thenReturn( true );
+		Phake::when( $this->saml_response_service )->is_timestamp_within_restrictions( Phake::anyParameters() )
+		     ->thenReturn( true );
 		Phake::when( $this->saml_response_service )->is_valid_destination( Phake::anyParameters() )->thenReturn( true );
 		Phake::when( $this->saml_response_service )->is_session_index_registered()->thenReturn( false );
 	}

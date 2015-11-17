@@ -58,7 +58,8 @@ class LaunchKey_WP_SSO_Client_LaunchKey_ShortCode_Test extends LaunchKey_WP_SSO_
 				$this->wpdb,
 				static::LOGIN_URL,
 				static::LOGOUT_URL,
-				static::ERROR_URL
+				static::ERROR_URL,
+				false
 		);
 	}
 }

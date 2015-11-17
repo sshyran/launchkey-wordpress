@@ -62,10 +62,7 @@ abstract class LaunchKey_WP_Native_Client_Test_Abstract extends PHPUnit_Framewor
 		Phake::initAnnotations( $this );
 
 		$this->client = new LaunchKey_WP_Native_Client(
-			$this->sdk_client,
-			$this->facade,
-			$this->template,
-			$this->language_domain = 'Test Language Domain'
+				$this->sdk_client, $this->facade, $this->template, $this->language_domain = 'Test Language Domain', false
 		);
 
 		Phake::when( $this->sdk_client )->auth()->thenReturn( $this->sdk_auth );

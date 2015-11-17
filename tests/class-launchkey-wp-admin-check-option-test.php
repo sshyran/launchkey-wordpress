@@ -377,7 +377,7 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 			unset( $_FILES[ $key ] );
 		}
 
-		$this->client = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain = 'launchkey' );
+		$this->client = new LaunchKey_WP_Admin( $this->facade, $this->template, $this->language_domain = 'launchkey', false );
 	}
 
 	protected function tearDown() {

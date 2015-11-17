@@ -73,6 +73,11 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 	 */
 	private $white_label_user;
 
+	/**
+	 * @var bool
+	 */
+	private $is_multi_site;
+
 	public function test_does_nothing_when_no_nonce() {
 		unset( $_REQUEST['nonce'] );
 		$this->wizard->verify_configuration_callback();
@@ -328,9 +333,12 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 		$_POST['action'] = null;
 		$_REQUEST['nonce'] = 'not empty';
 
+		$this->is_multi_site = false;
+
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
 			$this->admin,
+			$this->is_multi_site,
 			$this->client
 		);
 	}
@@ -344,6 +352,7 @@ class LaunchKey_WP_Configuration_Wizard_Verify_Configuration_Callback_Test exten
 		$this->wpdb = null;
 		$this->auth = null;
 		$this->auth_request = null;
+		$this->is_multi_site = null;
 
 		foreach ( array_keys( $_SERVER ) as $key ) {
 			unset( $_SERVER[$key] );

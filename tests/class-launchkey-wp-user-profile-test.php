@@ -37,7 +37,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 	private $launguage_domain;
 
 
-	public function test_register_admin_actions_adds_action_profile_personal_options() {
+	public function test_register_actions_adds_action_profile_personal_options() {
 		$this->client->register_actions();
 		Phake::verify( $this->facade )->add_action( 'profile_personal_options', array(
 			$this->client,
@@ -45,7 +45,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		) );
 	}
 
-	public function test_register_admin_actions_adds_remove_password_handler() {
+	public function test_register_actions_adds_remove_password_handler() {
 		$this->client->register_actions();
 		Phake::verify( $this->facade )->add_action( 'admin_init', array(
 			$this->client,
@@ -53,7 +53,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		) );
 	}
 
-	public function test_register_admin_actions_adds_unpair_handler() {
+	public function test_register_actions_adds_unpair_handler() {
 		$this->client->register_actions();
 		Phake::verify( $this->facade )->add_action( 'admin_init', array(
 			$this->client,
@@ -61,15 +61,25 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		) );
 	}
 
-	public function test_register_admin_actions_adds_add_users_columns() {
-		$this->client->register_actions();
+	public function test_register_actions_adds_filter_for_manage_users_columns_when_not_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, false );
+		$client->register_actions();
 		Phake::verify( $this->facade )->add_filter( 'manage_users_columns', array(
-			$this->client,
+			$client,
 			'add_users_columns'
 		) );
 	}
 
-	public function test_register_admin_actions_adds_appy_custom_column_filter() {
+	public function test_register_actions_adds_filter_for_wpmu_users_columns_when_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, true );
+		$client->register_actions();
+		Phake::verify( $this->facade )->add_filter( 'wpmu_users_columns', array(
+			$client,
+			'add_users_columns'
+		) );
+	}
+
+	public function test_register_actions_adds_appy_custom_column_filter() {
 		$this->client->register_actions();
 		Phake::verify( $this->facade )->add_filter(
 			'manage_users_custom_column',
@@ -77,6 +87,18 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 			$this->anything(),
 			3
 		);
+	}
+
+	public function test_register_actions_uses_get_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, false );
+		$client->register_actions();
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_register_actions_uses_get_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, true );
+		$client->register_actions();
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 
 	public function test_get_user_meta_uses_proper_id() {
@@ -102,25 +124,31 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 					'nonce'            => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
 				)
 			),
-				'White Label' => array(
-						LaunchKey_WP_Implementation_Type::WHITE_LABEL,
-						'personal-options/white-label',
-						array(
-								'app_display_name'    => 'App Display Name',
-								'nonce'               => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
-								'pair_uri'            => 'AdminURL/admin-ajax.php?action=' . LaunchKey_WP_Native_Client::WHITE_LABEL_PAIR_ACTION,
-								'paired'              => 'false',
-								'has_password'        => 'true',
-								'password_remove_uri' => 'AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce=' . LaunchKey_WP_User_Profile::NONCE_KEY . '_value'
-						)
+			'White Label' => array(
+				LaunchKey_WP_Implementation_Type::WHITE_LABEL,
+				'personal-options/white-label',
+				array(
+					'app_display_name'    => 'App Display Name',
+					'nonce'               => LaunchKey_WP_User_Profile::NONCE_KEY . '_value',
+					'pair_uri'            => 'AdminURL/admin-ajax.php?action=' .
+					                         LaunchKey_WP_Native_Client::WHITE_LABEL_PAIR_ACTION,
+					'paired'              => 'false',
+					'has_password'        => 'true',
+					'password_remove_uri' => 'AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce=' .
+					                         LaunchKey_WP_User_Profile::NONCE_KEY . '_value'
 				)
+			)
 		);
 	}
 
 	/**
 	 * @dataProvider provider_unpaired_type_template_matrix
 	 */
-	public function test_non_sso_when_no_launchkey_meta_data_unpaired_template_shown_with_the_correct_context( $implementation_type, $expected_template, $expected_context ) {
+	public function test_non_sso_when_no_launchkey_meta_data_unpaired_template_shown_with_the_correct_context(
+		$implementation_type,
+		$expected_template,
+		$expected_context
+	) {
 		$this->options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ]          = 12345;
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = $implementation_type;
 		Phake::when( $this->facade )->get_user_meta( Phake::anyParameters() )->thenReturn( array() );
@@ -132,64 +160,88 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_non_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
+	public function test_non_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context(
+	) {
 		$expected_nonce = LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
 		$this->client->launchkey_personal_options( $this->user );
-		Phake::verify( $this->template )->render_template( 'personal-options/paired-with-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->template )
+		     ->render_template( 'personal-options/paired-with-password', Phake::capture( $actual_context ) );
 		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/paired-with-password]' );
 		Phake::verify( $this->facade )->wp_create_nonce( LaunchKey_WP_User_Profile::NONCE_KEY );
-		Phake::verify( $this->facade )->admin_url( "/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}" );
-		Phake::verify( $this->facade )->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
+		Phake::verify( $this->facade )
+		     ->admin_url( "/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}" );
+		Phake::verify( $this->facade )
+		     ->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
 
 		$expected_context = array(
-				'unpair_uri'          => "AdminURL/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}",
-				'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
-				'app_display_name'    => 'App Display Name',
+			'unpair_uri'          => "AdminURL/profile.php?launchkey_unpair=1&launchkey_nonce={$expected_nonce}",
+			'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
+			'app_display_name'    => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_sso_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context() {
-		$this->user->ID        = 1;
-		$this->user->user_pass = null;
+	public function test_sso_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context(
+	) {
+		$this->user->ID                                                    = 1;
+		$this->user->user_pass                                             = null;
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
 		$this->client->launchkey_personal_options( $this->user );
-		Phake::verify( $this->template )->render_template( 'personal-options/sso-without-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->template )
+		     ->render_template( 'personal-options/sso-without-password', Phake::capture( $actual_context ) );
 		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/sso-without-password]' );
 
 		$expected_context = array(
-				'app_display_name' => 'App Display Name',
+			'app_display_name' => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
-		$expected_nonce = LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
+	public function test_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context(
+	) {
+		$expected_nonce                                                    =
+			LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
 		$this->client->launchkey_personal_options( $this->user );
-		Phake::verify( $this->template )->render_template( 'personal-options/sso-with-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->template )
+		     ->render_template( 'personal-options/sso-with-password', Phake::capture( $actual_context ) );
 		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/sso-with-password]' );
 		Phake::verify( $this->facade )->wp_create_nonce( LaunchKey_WP_User_Profile::NONCE_KEY );
-		Phake::verify( $this->facade )->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
+		Phake::verify( $this->facade )
+		     ->admin_url( "/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}" );
 
 		$expected_context = array(
-				'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
-				'app_display_name'    => 'App Display Name',
+			'password_remove_uri' => "AdminURL/profile.php?launchkey_remove_password=1&launchkey_nonce={$expected_nonce}",
+			'app_display_name'    => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context() {
+	public function test_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context(
+	) {
 		$this->user->ID        = 1;
 		$this->user->user_pass = null;
 		$this->client->launchkey_personal_options( $this->user );
-		Phake::verify( $this->template )->render_template( 'personal-options/paired-without-password', Phake::capture( $actual_context ) );
+		Phake::verify( $this->template )
+		     ->render_template( 'personal-options/paired-without-password', Phake::capture( $actual_context ) );
 		Phake::verify( $this->facade )->_echo( 'Rendered [personal-options/paired-without-password]' );
 
 		$expected_context = array(
-				'app_display_name' => 'App Display Name',
+			'app_display_name' => 'App Display Name',
 		);
 		$this->assertEquals( $expected_context, $actual_context );
+	}
+
+	public function test_launchkey_personal_options_uses_get_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, false );
+		$client->launchkey_personal_options( $this->user );
+		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_launchkey_personal_options_uses_get_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, true );
+		$client->launchkey_personal_options( $this->user );
+		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 
 	public function test_unpair_handler_without_verified_nonce_does_not_unpair() {
@@ -289,19 +341,32 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		Phake::initAnnotations( $this );
 		Phake::when( $this->facade )->get_user_meta( Phake::anyParameters() )
 		     ->thenReturn( array( 'launchkey_user' => 'awesome_launchkey_user' ) );
-		Phake::when( $this->facade )->admin_url( Phake::anyParameters() )->thenReturnCallback( function ( $func, $args ) {
+		Phake::when( $this->facade )->admin_url( Phake::anyParameters() )->thenReturnCallback( function (
+			$func,
+			$args
+		) {
 			return 'AdminURL' . $args[0];
 		} );
-		Phake::when( $this->facade )->get_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that ) {
+		Phake::when( $this->facade )->get_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that
+		) {
 			return $that->options;
 		} );
-		Phake::when( $this->facade )->wp_create_nonce( Phake::anyParameters() )->thenReturnCallback( function ( $func, $args ) {
+		Phake::when( $this->facade )->get_site_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that
+		) {
+			return $that->options;
+		} );
+		Phake::when( $this->facade )->wp_create_nonce( Phake::anyParameters() )->thenReturnCallback( function (
+			$func,
+			$args
+		) {
 			return $args[0] . '_value';
 		} );
 		Phake::when( $this->facade )->__( Phake::anyParameters() )->thenReturnCallback( function ( $func, $args ) {
 			return sprintf( 'Translated [%s]', $args[0] );
 		} );
-		Phake::when( $this->template )->render_template( Phake::anyParameters() )->thenReturnCallback( function ( $template ) {
+		Phake::when( $this->template )->render_template( Phake::anyParameters() )->thenReturnCallback( function (
+			$template
+		) {
 			return "Rendered [{$template}]";
 		} );
 
@@ -311,10 +376,11 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 			LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::OAUTH
 		);
 
-		$this->user->ID        = 12345;
-		$this->user->user_pass = 'super awesome password';
+		$this->user->ID         = 12345;
+		$this->user->user_pass  = 'super awesome password';
 		$this->launguage_domain = 'Expected Language Domain';
-		$this->client          = new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain );
+		$this->client           =
+			new LaunchKey_WP_User_Profile( $this->facade, $this->template, $this->launguage_domain, false );
 	}
 
 	protected function tearDown() {

@@ -37,6 +37,11 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	 */
 	private $wizard;
 
+	/**
+	 * @var bool
+	 */
+	private $is_multi_site;
+
 	public function test_does_nothing_when_no_nonce() {
 		unset( $_POST['nonce'] );
 		$this->wizard->wizard_submit_ajax();
@@ -68,14 +73,36 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		Phake::verify( $this->admin )->check_option( $_POST );
 	}
 
-	public function test_updates_option_when_check_option_returns_no_errors() {
+	public function test_updates_option_when_check_option_returns_no_errors_and_not_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				false,
+				$this->client
+		);
 		$expected_option = array( 'expected' => 'option' );
 		Phake::when( $this->admin )->check_option( Phake::anyParameters() )->thenReturn( array(
-			$expected_option,
-			array()
+				$expected_option,
+				array()
 		) );
-		$this->wizard->wizard_submit_ajax();
+		$wizard->wizard_submit_ajax();
 		Phake::verify( $this->facade )->update_option( LaunchKey_WP_Admin::OPTION_KEY, $expected_option );
+	}
+
+	public function test_updates_site_option_when_check_option_returns_no_errors_and_multi_site() {
+		$wizard = new LaunchKey_WP_Configuration_Wizard(
+				$this->facade,
+				$this->admin,
+				true,
+				$this->client
+		);
+		$expected_option = array( 'expected' => 'option' );
+		Phake::when( $this->admin )->check_option( Phake::anyParameters() )->thenReturn( array(
+				$expected_option,
+				array()
+		) );
+		$wizard->wizard_submit_ajax();
+		Phake::verify( $this->facade )->update_site_option( LaunchKey_WP_Admin::OPTION_KEY, $expected_option );
 	}
 
 	public function test_does_not_update_option_when_check_option_returns_errors() {
@@ -124,9 +151,12 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$_POST['action'] = null;
 		$_POST['nonce'] = 'expected';
 
+		$this->is_multi_site = false;
+
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
 			$this->admin,
+			$this->is_multi_site,
 			$this->client
 		);
 	}
@@ -136,6 +166,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$this->facade = null;
 		$this->admin = null;
 		$this->client = null;
+		$this->is_multi_site = null;
 
 		foreach ( array_keys( $_SERVER ) as $key ) {
 			unset( $_SERVER[$key] );
