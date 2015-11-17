@@ -82,7 +82,8 @@ abstract class LaunchKey_WP_SSO_Client_Test_Abstract extends PHPUnit_Framework_T
 			$this->wpdb,
 			static::LOGIN_URL,
 			static::LOGOUT_URL,
-			static::ERROR_URL
+			static::ERROR_URL,
+			false
 		);
 	}
 

@@ -3,13 +3,16 @@
   Plugin Name: LaunchKey
   Plugin URI: https://wordpress.org/plugins/launchkey/
   Description:  LaunchKey eliminates the need and liability of passwords by letting you log in and out of WordPress with your smartphone or tablet.
-  Version: 1.2.0
+  Version: 1.3.0
   Author: LaunchKey, Inc.
   Text Domain: launchkey
   Author URI: https://launchkey.com
   License: GPLv2 Copyright (c) 2014 LaunchKey, Inc.
  */
 require_once __DIR__ . '/vendor/autoload.php';
+if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+	require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+}
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 /**
@@ -88,16 +91,6 @@ function launchkey_plugin_init() {
 	}
 
 	/**
-	 * Handle upgrades if in the admin and not the latest version
-	 */
-	if ( is_admin() && launchkey_is_activated() ) {
-		$options = get_option( LaunchKey_WP_Admin::OPTION_KEY );
-		if ( $options && $options[ LaunchKey_WP_Options::OPTION_VERSION ] < 1.1 ) {
-			launchkey_create_tables();
-		}
-	}
-
-	/**
 	 * Language domain for the plugin
 	 */
 	$language_domain = 'launchkey';
@@ -111,12 +104,6 @@ function launchkey_plugin_init() {
 	add_action( 'plugins_loaded', function () use ( $language_domain ) {
 		load_plugin_textdomain( $language_domain, false, plugin_basename( __FILE__ ) . '/languages/' );
 	} );
-
-	/**
-	 * Get the WP global facade
-	 * @see LaunchKey_WP_Global_Facade
-	 */
-	$facade = new LaunchKey_WP_Global_Facade();
 
 	/**
 	 * Create an AES encryption class for encryption/decryption of the secret options
@@ -142,6 +129,7 @@ function launchkey_plugin_init() {
 	 * @see LaunchKey_WP_Options::pre_update_option_filter
 	 */
 	add_filter( 'pre_update_option_launchkey', array( $options_handler, 'pre_update_option_filter' ) );
+	add_filter( 'pre_update_site_option_launchkey', array( $options_handler, 'pre_update_option_filter' ) );
 
 	/**
 	 * The pre_update_option_filter filter will process the "launchkey" option directly
@@ -152,6 +140,7 @@ function launchkey_plugin_init() {
 	 * @see LaunchKey_WP_Options::pre_update_option_filter
 	 */
 	add_filter( 'pre_add_option_launchkey', array( $options_handler, 'pre_update_option_filter' ) );
+	add_filter( 'pre_add_site_option_launchkey', array( $options_handler, 'pre_update_option_filter' ) );
 
 	/**
 	 * The option_launchkey filter will process the "launchkey" option directly
@@ -162,6 +151,17 @@ function launchkey_plugin_init() {
 	 * @see LaunchKey_WP_Options::post_get_option_filter
 	 */
 	add_filter( 'option_launchkey', array( $options_handler, 'post_get_option_filter' ) );
+	add_filter( 'site_option_launchkey', array( $options_handler, 'post_get_option_filter' ) );
+
+	$is_multi_site = is_multisite() && is_plugin_active_for_network( plugin_basename( __FILE__ ) );
+	$options = $is_multi_site ? get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) : get_option( LaunchKey_WP_Admin::OPTION_KEY );
+
+	/**
+	 * Handle upgrades if in the admin and not the latest version
+	 */
+	if ( is_admin() && launchkey_is_activated() && $options && $options[ LaunchKey_WP_Options::OPTION_VERSION ] < 1.1 ) {
+		launchkey_create_tables();
+	}
 
 	/**
 	 * If the pre-1.0.0 option style was already used, create a 1.0.0 option and remove the old options.  They are
@@ -178,16 +178,25 @@ function launchkey_plugin_init() {
 			LaunchKey_WP_Implementation_Type::OAUTH;
 		$launchkey_options[ LaunchKey_WP_Options::OPTION_LEGACY_OAUTH ]        = true;
 
-		if ( update_option( LaunchKey_WP_Admin::OPTION_KEY, $launchkey_options ) ) {
+		$updated = $is_multi_site ? update_network_option( LaunchKey_WP_Admin::OPTION_KEY, $launchkey_options ) :
+			update_option( LaunchKey_WP_Admin::OPTION_KEY, $launchkey_options );
+		if ( $updated ) {
 			delete_option( 'launchkey_app_key' );
 			delete_option( 'launchkey_secret_key' );
 		} else {
 			throw new RuntimeException( 'Unable to upgrade LaunchKey meta-data.  Failed to save setting ' .
 			                            LaunchKey_WP_Admin::OPTION_KEY );
 		}
-	} elseif ( ! get_option( LaunchKey_WP_Admin::OPTION_KEY ) ) {
-		add_option( LaunchKey_WP_Admin::OPTION_KEY, array() );
+	} elseif ( ! $options ) {
+		$is_multi_site ? add_site_option( LaunchKey_WP_Admin::OPTION_KEY, array() ) : add_option( LaunchKey_WP_Admin::OPTION_KEY, array() );
+		$options = $is_multi_site ? get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) : get_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
+
+	/**
+	 * Get the WP global facade
+	 * @see LaunchKey_WP_Global_Facade
+	 */
+	$facade = new LaunchKey_WP_Global_Facade();
 
 	/**
 	 * Create a templating object and point it at the correct directory for template files.
@@ -200,7 +209,6 @@ function launchkey_plugin_init() {
 	libxml_disable_entity_loader( true );
 
 	// Get the plugin options to determine which authentication implementation should be utilized
-	$options          = get_option( LaunchKey_WP_Admin::OPTION_KEY );
 	$logger           = new LaunchKey_WP_Logger( $facade );
 	$launchkey_client = null;
 	$client           = null;
@@ -217,16 +225,17 @@ function launchkey_plugin_init() {
 		$saml_response_service = new LaunchKey_WP_SAML2_Response_Service( $securityKey, $facade );
 		$saml_request_service  = new LaunchKey_WP_SAML2_Request_Service( $securityKey );
 
-		$client = new LaunchKey_WP_SSO_Client(
-			$facade,
-			$template,
-			$options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
-			$saml_response_service,
-			$saml_request_service,
-			$wpdb,
-			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
-			$options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
-			$options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ]
+		$client       = new LaunchKey_WP_SSO_Client(
+				$facade,
+				$template,
+				$options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
+				$saml_response_service,
+				$saml_request_service,
+				$wpdb,
+				$options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
+				$options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
+				$options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ],
+				$is_multi_site
 		);
 	} elseif ( LaunchKey_WP_Implementation_Type::OAUTH ===
 	           $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] &&
@@ -236,7 +245,7 @@ function launchkey_plugin_init() {
 		 * If the implementation type is OAuth, use the OAuth client
 		 * @see LaunchKey_WP_OAuth_Client
 		 */
-		$client = new LaunchKey_WP_OAuth_Client( $facade, $template );
+		$client = new LaunchKey_WP_OAuth_Client( $facade, $template, $is_multi_site);
 	} elseif ( ! empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] ) ) {
 
 		$launchkey_client = \LaunchKey\SDK\Client::wpFactory(
@@ -246,7 +255,7 @@ function launchkey_plugin_init() {
 			$options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ]
 		);
 
-		$client = new LaunchKey_WP_Native_Client( $launchkey_client, $facade, $template, $language_domain );
+		$client = new LaunchKey_WP_Native_Client( $launchkey_client, $facade, $template, $language_domain, $is_multi_site);
 
 		add_filter( 'init', function () use ( $facade ) {
 			wp_enqueue_script(
@@ -277,8 +286,7 @@ function launchkey_plugin_init() {
 		 *
 		 * @see LaunchKey_WP_User_Profile
 		 */
-		$profile = new LaunchKey_WP_User_Profile( $facade, $template, $language_domain,
-			$options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] );
+		$profile = new LaunchKey_WP_User_Profile( $facade, $template, $language_domain, $is_multi_site );
 		$profile->register_actions();
 
 		/**
@@ -291,19 +299,19 @@ function launchkey_plugin_init() {
 		}
 	}
 
-	if ( is_admin() ) {
+	if ( is_admin() || ( $is_multi_site && is_network_admin() ) ) {
 		/**
-		 * If we are in the admin, create am admin object and register its actions.  These actions
+		 * If we are in the admin, create an admin object and register its actions.  These actions
 		 * will manage setting of options and user management for the plugin.
 		 *
 		 * @see is_admin
 		 * @see LaunchKey_WP_Admin
 		 */
-		$launchkey_admin = new LaunchKey_WP_Admin( $facade, $template, $language_domain );
+		$launchkey_admin = new LaunchKey_WP_Admin( $facade, $template, $language_domain, $is_multi_site );
 		$launchkey_admin->register_actions();
 
 		$config_wizard = new LaunchKey_WP_Configuration_Wizard(
-			$facade, $launchkey_admin, $launchkey_client
+			$facade, $launchkey_admin, $is_multi_site, $launchkey_client
 		);
 		$config_wizard->register_actions();
 	}

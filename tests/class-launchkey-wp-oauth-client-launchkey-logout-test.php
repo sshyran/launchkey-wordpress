@@ -89,6 +89,17 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_Logout_Test extends PHPUnit_Framework_
 		     ->setcookie( $cookie_name, '1', $this->current_time - 60, COOKIEPATH, COOKIE_DOMAIN );
 	}
 
+	public function test_uses_get_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
+		$client->launchkey_logout();
+		Phake::verify( $this->facade )->get_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_uses_get_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, true);
+		$client->launchkey_logout();
+		Phake::verify( $this->facade )->get_site_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
 
 	protected function setUp() {
 		$that = $this;
@@ -100,7 +111,7 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_Logout_Test extends PHPUnit_Framework_
 			return $that->options;
 		} );
 
-		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template );
+		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
 	}
 
 	protected function tearDown() {

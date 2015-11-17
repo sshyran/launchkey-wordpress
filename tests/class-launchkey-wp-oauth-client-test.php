@@ -79,7 +79,7 @@ class LaunchKey_WP_OAuth_Client_Test extends PHPUnit_Framework_TestCase {
 	protected function setUp() {
 		Phake::initAnnotations( $this );
 		Phake::when( $this->facade )->get_launchkey_options()->thenReturn( $this->options );
-		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template );
+		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
 	}
 
 	protected function tearDown() {

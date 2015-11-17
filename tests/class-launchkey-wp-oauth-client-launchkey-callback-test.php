@@ -281,7 +281,7 @@ class LaunchKey_WP_OAuth_Client_LaunchKey_Callback_Test extends PHPUnit_Framewor
 
 		Phake::when( $this->facade )->current_time( Phake::anyParameters() )->thenReturn( $this->timestamp = rand( 10000, 99999 ) );
 
-		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template );
+		$this->client = new LaunchKey_WP_OAuth_Client( $this->facade, $this->template, false);
 	}
 
 	protected function tearDown() {

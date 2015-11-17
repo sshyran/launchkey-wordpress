@@ -233,6 +233,39 @@ class LaunchKey_WP_SSO_Client_LaunchKey_Form_Test extends LaunchKey_WP_SSO_Clien
 		);
 	}
 
+	public function test_uses_get_option_when_not_multi_site() {
+		$client = new LaunchKey_WP_SSO_Client(
+				$this->facade,
+				$this->template,
+				static::ENTITY_ID,
+				$this->saml_response_service,
+				$this->saml_request_service,
+				$this->wpdb,
+				static::LOGIN_URL,
+				static::LOGOUT_URL,
+				static::ERROR_URL,
+				false
+		);
+		$client->launchkey_form();
+		Phake::verify( $this->facade )->get_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
+
+	public function test_uses_get_site_option_when_multi_site() {
+		$client = new LaunchKey_WP_SSO_Client(
+				$this->facade,
+				$this->template,
+				static::ENTITY_ID,
+				$this->saml_response_service,
+				$this->saml_request_service,
+				$this->wpdb,
+				static::LOGIN_URL,
+				static::LOGOUT_URL,
+				static::ERROR_URL,
+				true
+		);
+		$client->launchkey_form();
+		Phake::verify( $this->facade )->get_site_option ( LaunchKey_WP_Admin::OPTION_KEY );
+	}
 
 	protected function setUp() {
 		parent::setUp();
@@ -242,6 +275,10 @@ class LaunchKey_WP_SSO_Client_LaunchKey_Form_Test extends LaunchKey_WP_SSO_Clien
 		);
 		$that = $this;
 		Phake::when( $this->facade )->get_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that ) {
+			return $that->options;
+		} );
+
+		Phake::when( $this->facade )->get_site_option( Phake::anyParameters() )->thenReturnCallback( function () use ( $that ) {
 			return $that->options;
 		} );
 
