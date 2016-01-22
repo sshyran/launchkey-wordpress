@@ -13,13 +13,19 @@ if ( ! class_exists( 'WP_User' ) ) {
 
 		/**
 		 * WP_User constructor.
+		 *
+		 * @param int $id
 		 */
-		public function __construct( $id ) {
+		public function __construct( $id = 0 ) {
 			$this->ID = $id;
 		}
 
 		public function get( $key ) {
+			return "$key-value";
+		}
 
+		public function __get( $name ) {
+			return $this->get( $name );
 		}
 	}
 }

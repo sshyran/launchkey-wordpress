@@ -20,6 +20,12 @@ abstract class LaunchKey_WP_Native_Client_Test_Abstract extends PHPUnit_Framewor
 
 	/**
 	 * @Mock
+	 * @var \LaunchKey\SDK\Service\ServerSentEventService
+	 */
+	protected $sdk_sse;
+
+	/**
+	 * @Mock
 	 * @var \LaunchKey\SDK\Domain\AuthRequest
 	 */
 	protected $auth_request;
@@ -66,6 +72,7 @@ abstract class LaunchKey_WP_Native_Client_Test_Abstract extends PHPUnit_Framewor
 		);
 
 		Phake::when( $this->sdk_client )->auth()->thenReturn( $this->sdk_auth );
+		Phake::when( $this->sdk_client )->serverSentEvent()->thenReturn( $this->sdk_sse );
 		Phake::when( $this->sdk_auth )->authenticate( Phake::anyParameters() )->thenReturn( $this->auth_request );
 
 		Phake::when( $this->template )->render_template( Phake::anyParameters() )->thenReturnCallback( function ( $template ) {

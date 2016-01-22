@@ -33,15 +33,18 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 	 * @param LaunchKey_WP_Global_Facade $wp_facade
 	 * @param LaunchKey_WP_Template $template
 	 * @param bool $is_multi_site
+	 * @param string $base_url
 	 */
 	public function __construct(
-			LaunchKey_WP_Global_Facade $wp_facade,
-			LaunchKey_WP_Template $template,
-			$is_multi_site
+		LaunchKey_WP_Global_Facade $wp_facade,
+		LaunchKey_WP_Template $template,
+		$is_multi_site,
+		$base_url = "https://oauth.launchkey.com"
 	) {
-		$this->wp_facade = $wp_facade;
-		$this->template  = $template;
+		$this->wp_facade     = $wp_facade;
+		$this->template      = $template;
 		$this->is_multi_site = $is_multi_site;
+		$this->base_url      = $base_url;
 	}
 
 	/**
@@ -69,12 +72,12 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 		$options = $this->get_option();
 		if ( isset( $_COOKIE['launchkey_access_token'] ) ) {
 			$this->wp_facade->wp_remote_get(
-				'https://oauth.launchkey.com/logout?access_token=' . $_COOKIE['launchkey_access_token'],
+				$this->base_url . '/logout?access_token=' . $_COOKIE['launchkey_access_token'],
 				array(
 					'httpversion' => '1.1',
-					'sslverify' => $options[LaunchKey_WP_Options::OPTION_SSL_VERIFY],
-					'timeout'   => $options[LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT],
-					'headers'   => array( 'Connection' => 'close' )
+					'sslverify'   => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ],
+					'timeout'     => $options[ LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT ],
+					'headers'     => array( 'Connection' => 'close' )
 				)
 			);
 			$expire_time = $this->wp_facade->current_time( 'timestamp', true ) - 60;
@@ -149,9 +152,14 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 				'class'               => $class,
 				'id'                  => $id,
 				'style'               => $style,
-				'login_url'           => sprintf( 'https://oauth.launchkey.com/authorize?client_id=%s&redirect_uri=%s', $options[LaunchKey_WP_Options::OPTION_ROCKET_KEY], urlencode( $this->wp_facade->admin_url( 'admin-ajax.php?action=launchkey-callback' ) ) ),
+				'login_url'           => sprintf(
+					'%s/authorize?client_id=%s&redirect_uri=%s',
+					$this->base_url,
+					$options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
+					urlencode( $this->wp_facade->admin_url( 'admin-ajax.php?action=launchkey-callback' ) )
+				),
 				'login_text'          => 'Log in with',
-				'login_with_app_name' => $options[LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME],
+				'login_with_app_name' => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ],
 				'size'                => in_array( $this->wp_facade->get_locale(), array(
 					'fr_FR',
 					'es_ES'
@@ -192,12 +200,15 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 		if ( $user_id ) {
 			// If the user is already paired
 			$this->wp_facade->wp_set_auth_cookie( $user_id, false );
-			$this->login_user( $token_response['access_token'], $token_response['expires_in'], $token_response['refresh_token'] );
+			$this->login_user( $token_response['access_token'], $token_response['expires_in'],
+				$token_response['refresh_token'] );
 			$this->wp_facade->wp_redirect( $this->wp_facade->admin_url() );
 		} else {
 			// First Time Pair
-			$this->login_user( $token_response['access_token'], $token_response['expires_in'], $token_response['refresh_token'] );
-			$this->prepare_for_launchkey_pair( $token_response['user'], $token_response['access_token'], $token_response['expires_in'], $token_response['refresh_token'] );
+			$this->login_user( $token_response['access_token'], $token_response['expires_in'],
+				$token_response['refresh_token'] );
+			$this->prepare_for_launchkey_pair( $token_response['user'], $token_response['access_token'],
+				$token_response['expires_in'], $token_response['refresh_token'] );
 		}
 	} //end launchkey_callback
 
@@ -218,16 +229,17 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 		if ( isset( $_COOKIE['launchkey_access_token'] ) ) {
 			$args = array(
 				'httpversion' => '1.1',
-				'headers'   => array(
+				'headers'     => array(
 					'Authorization' => 'Bearer ' . $_COOKIE['launchkey_access_token'],
 					'Connection'    => 'close'
 				),
-				'sslverify' => $options[LaunchKey_WP_Options::OPTION_SSL_VERIFY],
-				'timeout'   => $options[LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT]
+				'sslverify'   => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ],
+				'timeout'     => $options[ LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT ]
 			);
 
-			$oauth_response  = $this->wp_facade->wp_remote_post( "https://oauth.launchkey.com/resource/ping", $args );
-			$response_object = $oauth_response instanceof WP_Error ? null : json_decode( $oauth_response['body'], true );
+			$oauth_response  = $this->wp_facade->wp_remote_post( "{$this->base_url}/resource/ping", $args );
+			$response_object =
+				$oauth_response instanceof WP_Error ? null : json_decode( $oauth_response['body'], true );
 			if ( $response_object && isset( $response_object['message'] ) ) {
 				if ( $response_object['message'] != 'valid' ) {
 					//refresh_token
@@ -235,26 +247,28 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 						//prepare data for access token
 						$data = array(
 							'httpversion' => '1.1',
-							'body'      => array(
-								'client_id'     => $options[LaunchKey_WP_Options::OPTION_ROCKET_KEY],
-								'client_secret' => $options[LaunchKey_WP_Options::OPTION_SECRET_KEY],
+							'body'        => array(
+								'client_id'     => $options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
+								'client_secret' => $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ],
 								'redirect_uri'  => $this->wp_facade->admin_url(),
 								'refresh_token' => $_COOKIE['launchkey_refresh_token'],
 								'grant_type'    => "refresh_token"
 							),
-							'sslverify' => $options[LaunchKey_WP_Options::OPTION_SSL_VERIFY],
-							'timeout'   => $options[LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT],
-							'headers'   => array( 'Connection' => 'close' )
+							'sslverify'   => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ],
+							'timeout'     => $options[ LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT ],
+							'headers'     => array( 'Connection' => 'close' )
 						);
 
 						//make oauth call
-						$oauth_get = $this->wp_facade->wp_remote_post( "https://oauth.launchkey.com/access_token", $data );
+						$oauth_get =
+							$this->wp_facade->wp_remote_post( "{$this->base_url}/access_token", $data );
 
 						if ( ! $this->wp_facade->is_wp_error( $oauth_get ) ) {
 							$oauth_response = json_decode( $oauth_get['body'], true );
 						} else {
 							$this->wp_facade->wp_logout();
-							$this->wp_facade->wp_redirect( $this->wp_facade->wp_login_url() . "?launchkey_ssl_error=1" );
+							$this->wp_facade->wp_redirect( $this->wp_facade->wp_login_url() .
+							                               "?launchkey_ssl_error=1" );
 
 							return;
 						}
@@ -265,11 +279,14 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 							$timestamp               = $this->wp_facade->current_time( 'timestamp', true );
 							$launchkey_expires       = $timestamp + $oauth_response['expires_in'];
 							$cookie_expires          = $timestamp + ( 86400 * 30 );
-							$this->wp_facade->setcookie( 'launchkey_access_token', $launchkey_access_token, $cookie_expires,
+							$this->wp_facade->setcookie( 'launchkey_access_token', $launchkey_access_token,
+								$cookie_expires,
 								COOKIEPATH, COOKIE_DOMAIN );
-							$this->wp_facade->setcookie( 'launchkey_refresh_token', $launchkey_refresh_token, $cookie_expires,
+							$this->wp_facade->setcookie( 'launchkey_refresh_token', $launchkey_refresh_token,
+								$cookie_expires,
 								COOKIEPATH, COOKIE_DOMAIN );
-							$this->wp_facade->setcookie( 'launchkey_expires', $launchkey_expires, $cookie_expires, COOKIEPATH,
+							$this->wp_facade->setcookie( 'launchkey_expires', $launchkey_expires, $cookie_expires,
+								COOKIEPATH,
 								COOKIE_DOMAIN );
 						} else {
 							$this->wp_facade->wp_logout();
@@ -344,8 +361,8 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 
 		//prepare request data for access token
 		$data                  = array();
-		$data['client_id']     = $options[LaunchKey_WP_Options::OPTION_ROCKET_KEY];
-		$data['client_secret'] = $options[LaunchKey_WP_Options::OPTION_SECRET_KEY];
+		$data['client_id']     = $options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ];
+		$data['client_secret'] = $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ];
 		$data['redirect_uri']  = $this->wp_facade->admin_url();
 		$data['code']          = $response_code;
 		$data['grant_type']    = "authorization_code";
@@ -354,12 +371,12 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 		$params = http_build_query( $data );
 
 		// Attempt to get an access token from the resposne code
-		$oauth_get = $this->wp_facade->wp_remote_get( "https://oauth.launchkey.com/access_token?" . $params,
+		$oauth_get = $this->wp_facade->wp_remote_get( "{$this->base_url}/access_token?" . $params,
 			array(
 				'httpversion' => '1.1',
-				'sslverify' => $options[LaunchKey_WP_Options::OPTION_SSL_VERIFY],
-				'timeout'   => $options[LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT],
-				'headers'   => array( 'Connection' => 'close' )
+				'sslverify'   => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ],
+				'timeout'     => $options[ LaunchKey_WP_Options::OPTION_REQUEST_TIMEOUT ],
+				'headers'     => array( 'Connection' => 'close' )
 			)
 		);
 
@@ -409,9 +426,12 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 		// launchkey_expires token expires when the access token expires
 		$launchkey_expires = $timestamp + $expires_in;
 
-		$this->wp_facade->setcookie( 'launchkey_access_token', $access_token, $refresh_expires, COOKIEPATH, COOKIE_DOMAIN );
-		$this->wp_facade->setcookie( 'launchkey_refresh_token', $refresh_token, $refresh_expires, COOKIEPATH, COOKIE_DOMAIN );
-		$this->wp_facade->setcookie( 'launchkey_expires', $launchkey_expires, $refresh_expires, COOKIEPATH, COOKIE_DOMAIN );
+		$this->wp_facade->setcookie( 'launchkey_access_token', $access_token, $refresh_expires, COOKIEPATH,
+			COOKIE_DOMAIN );
+		$this->wp_facade->setcookie( 'launchkey_refresh_token', $refresh_token, $refresh_expires, COOKIEPATH,
+			COOKIE_DOMAIN );
+		$this->wp_facade->setcookie( 'launchkey_expires', $launchkey_expires, $refresh_expires, COOKIEPATH,
+			COOKIE_DOMAIN );
 	}
 
 	private function is_token_response_valid( array $token_response ) {
@@ -450,6 +470,7 @@ class LaunchKey_WP_OAuth_Client implements LaunchKey_WP_Client {
 	 * @return mixed
 	 */
 	private function get_option() {
-		return $this->is_multi_site ? $this->wp_facade->get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) : $this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+		return $this->is_multi_site ? $this->wp_facade->get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) :
+			$this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 }

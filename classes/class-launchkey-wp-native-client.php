@@ -1,4 +1,6 @@
 <?php
+use RingCentral\Psr7\Request;
+use RingCentral\Psr7\Response;
 
 /**
  * @package launchkey
@@ -67,11 +69,11 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	 * @param bool $is_multi_site
 	 */
 	public function __construct(
-			LaunchKey\SDK\Client $launchkey_client,
-			LaunchKey_WP_Global_Facade $wp_facade,
-			LaunchKey_WP_Template $template,
-			$language_domain,
-			$is_multi_site
+		LaunchKey\SDK\Client $launchkey_client,
+		LaunchKey_WP_Global_Facade $wp_facade,
+		LaunchKey_WP_Template $template,
+		$language_domain,
+		$is_multi_site
 	) {
 		$this->wp_facade        = $wp_facade;
 		$this->launchkey_client = $launchkey_client;
@@ -86,7 +88,7 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	 * @since 1.0.0
 	 */
 	public function register_actions() {
-		$options = $this->get_option();
+		$options = $this->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 
 		$this->wp_facade->add_action( 'login_form', array( $this, 'show_native_login_hint' ) );
 
@@ -126,12 +128,50 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	} //end register_actions
 
 	/**
+	 * @return mixed
+	 */
+	private function get_option( $key ) {
+		return $this->is_multi_site ? $this->wp_facade->get_site_option( $key ) :
+			$this->wp_facade->get_option( $key );
+	}
+
+	/**
+	 * Register actions and callbacks with WP Engine for admin
+	 */
+	private function register_admin_actions() {
+		$this->wp_facade->add_action(
+			'wp_ajax_' . static::CALLBACK_AJAX_ACTION,
+			array( $this, 'launchkey_callback' )
+		);
+		$this->wp_facade->add_action(
+			'wp_ajax_nopriv_' . static::CALLBACK_AJAX_ACTION,
+			array( $this, 'launchkey_callback' )
+		);
+		$this->wp_facade->add_action(
+			'personal_options_update',
+			array( $this, 'pair_callback' )
+		);
+		$this->wp_facade->add_action(
+			'user_profile_update_errors',
+			array( $this, 'pair_errors_callback' )
+		);
+		$this->wp_facade->add_action(
+			'wp_ajax_' . static::WHITE_LABEL_PAIR_ACTION,
+			array( $this, 'white_label_pair_callback' )
+		);
+		$this->wp_facade->add_action(
+			'wp_ajax_nopriv_' . static::WHITE_LABEL_PAIR_ACTION,
+			array( $this, 'white_label_pair_callback' )
+		);
+	}
+
+	/**
 	 * Login hint to be shown when non-OAuth is used
 	 *
 	 * @since 1.0.0
 	 */
 	public function show_native_login_hint() {
-		$options = $this->get_option();
+		$options = $this->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 		$this->wp_facade->_echo( $this->template->render_template( 'native-login-hint', array(
 			'app_display_name' => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ]
 		) ) );
@@ -213,6 +253,110 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	}
 
 	/**
+	 * @param $user_id
+	 * @param $launchkey_username
+	 *
+	 * @return null|WP_Error
+	 */
+	private function authenticate_user( $user_id, $launchkey_username ) {
+		// reset user authentication
+		$this->reset_auth( $user_id );
+
+		// Get the auth client from the SDK
+		$auth = $this->launchkey_client->auth();
+		try {
+			// Authenticate and get the request ID
+			$auth_request = $auth->authenticate( $launchkey_username )->getAuthRequestId();
+
+			// Set the auth request ID in the user metadata to be available to the server side event
+			$this->wp_facade->update_user_meta( $user_id, 'launchkey_auth', $auth_request );
+
+			// Loop until a response has been recorded by the SSE callback
+			do {
+				// Sleep before checking for the response to not kill the server
+				sleep( 1 );
+
+				// See if the user has authorized
+				$auth = $this->get_user_authorized( $user_id );
+			} while ( null === $auth ); // If the response is null, continue the loop
+
+			if ( $auth ) {
+				// If the user accepted, return true
+				$response = true;
+			} else {
+				// Otherwise, return an error
+				$response = new WP_Error(
+					'launchkey_authentication_denied',
+					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
+				);;
+			}
+		} catch ( Exception $e ) {
+			// Process exceptions appropriately
+			$response = new WP_Error();
+			if ( $e instanceof \LaunchKey\SDK\Service\Exception\NoPairedDevicesError ) {
+				$response->add(
+					'launchkey_authentication_denied',
+					$this->wp_facade->__( 'No Paired Devices!', $this->language_domain )
+				);
+			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\NoSuchUserError ) {
+				$response->add(
+					'launchkey_authentication_denied',
+					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
+				);
+			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\RateLimitExceededError ) {
+				$response->add(
+					'launchkey_authentication_denied',
+					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
+				);
+			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\ExpiredAuthRequestError ) {
+				$response->add(
+					'launchkey_authentication_timeout',
+					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
+				);
+			} else {
+				if ( $this->wp_facade->is_debug_log() ) {
+					$this->wp_facade->error_log( 'Error authenticating user with Launchkey: ' . $e->getMessage() );
+				}
+				$response->add(
+					'launchkey_authentication_error',
+					$this->wp_facade->__( 'Authentication error! Please try again later', $this->language_domain )
+				);
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * @param $user_id
+	 */
+	private function reset_auth( $user_id ) {
+		$this->wp_facade->update_user_meta( $user_id, 'launchkey_auth', null );
+		$this->wp_facade->update_user_meta( $user_id, 'launchkey_authorized', null );
+	}
+
+	/**
+	 * @param $user_id
+	 *
+	 * @return boolean
+	 */
+	private function get_user_authorized( $user_id ) {
+		$db    = $this->wp_facade->get_wpdb();
+		$value =
+			$db->get_var( $db->prepare( "SELECT meta_value FROM $db->usermeta WHERE user_id = %s AND meta_key = 'launchkey_authorized' LIMIT 1",
+				$user_id ) );
+		if ( 'true' === $value ) {
+			$authorized = true;
+		} elseif ( 'false' === $value ) {
+			$authorized = false;
+		} else {
+			$authorized = null;
+		}
+
+		return $authorized;
+	}
+
+	/**
 	 * Front controller for LaunchKey Native/White Label authentication
 	 *
 	 *
@@ -251,20 +395,30 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	 * @since 1.0.0
 	 */
 	public function launchkey_callback() {
-		// Get an SDK auth client
-		$auth = $this->launchkey_client->auth();
 
 		try {
-			// We are going to modify the query parameters, so copy the global $_GET
-			$query = $_GET;
+			$headers = array();
+			array_walk( $_SERVER, function ( $value, $key ) use ( &$headers ) {
+				if ( preg_match( '/^HTTP\_(.+)$/', $key, $matches ) ) {
+					$headers[ str_replace( '_', '-', $matches[1] ) ] = $value;
+				}
+			} );
 
-			// If deorbit is present, strip slashes as they being added by WordPress to "sanitize" request data
-			if ( isset( $query['deorbit'] ) ) {
-				$query['deorbit'] = stripslashes( $query['deorbit'] );
-			}
+			preg_match( '/^[^\/]+\/(.*)$/', $_SERVER['SERVER_PROTOCOL'], $matches );
+			$protocol_version = $matches ? $matches[1] : null;
+
+			$request = new Request(
+				$_SERVER['REQUEST_METHOD'],
+				$_SERVER['REQUEST_URI'],
+				$headers,
+				$this->wp_facade->fopen( 'php://input', 'rb' ),
+				$protocol_version
+			);
+
+			$http_response = new Response();
 
 			// Have the SDK client handle the callback
-			$response = $auth->handleCallback( $query );
+			$response = $this->launchkey_client->serverSentEvent()->handleEvent( $request, $http_response );
 
 			if ( $response instanceof \LaunchKey\SDK\Domain\AuthResponse ) { // If this is an auth response
 
@@ -287,8 +441,9 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 					$response->isAuthorized() ? 'true' : 'false' );
 				$this->wp_facade->update_user_meta( $user->ID, "launchkey_user", $response->getUserHash() );
 
-				// If this is a native implementation and we have a valid User Push ID in the response, replace the username with that to prevent exposure of the username
-				$options      = $this->get_option();
+				// If this is a native implementation and we have a valid User Push ID in the response,
+				// replace the username with that to prevent exposure of the username
+				$options      = $this->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 				$user_push_id = $response->getUserPushId();
 				if ( $user_push_id && LaunchKey_WP_Implementation_Type::NATIVE ===
 				                      $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
@@ -310,18 +465,19 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 
 				// Set authorized to false in the user metadata
 				$this->wp_facade->update_user_meta( $user->ID, "launchkey_authorized", 'false' );
-				$auth->deOrbit( $user->launchkey_auth );
+				$this->launchkey_client->auth()->deOrbit( $user->launchkey_auth );
+
 			}
 		} catch ( \Exception $e ) {
+			if ( $this->wp_facade->is_debug_log() ) {
+				$this->wp_facade->error_log( 'Callback Exception: ' . $e->getMessage() );
+			}
 			if ( // If the request is invalid, return 400
 				$e instanceof \LaunchKey\SDK\Service\Exception\InvalidRequestError ||
 				$e instanceof \LaunchKey\SDK\Service\Exception\UnknownCallbackActionError
 			) {
 				$this->wp_facade->wp_die( 'Invalid Request', 400 );
 			} else { // Otherwise, return 500
-				if ( $this->wp_facade->is_debug_log() ) {
-					$this->wp_facade->error_log( 'Callback Exception: ' . $e->getMessage() );
-				}
 				$this->wp_facade->wp_die( 'Server Error', 500 );
 			}
 		}
@@ -508,144 +664,10 @@ class LaunchKey_WP_Native_Client implements LaunchKey_WP_Client {
 	}
 
 	/**
-	 * Register actions and callbacks with WP Engine for admin
-	 */
-	private function register_admin_actions() {
-		$this->wp_facade->add_action(
-			'wp_ajax_' . static::CALLBACK_AJAX_ACTION,
-			array( $this, 'launchkey_callback' )
-		);
-		$this->wp_facade->add_action(
-			'wp_ajax_nopriv_' . static::CALLBACK_AJAX_ACTION,
-			array( $this, 'launchkey_callback' )
-		);
-		$this->wp_facade->add_action(
-			'personal_options_update',
-			array( $this, 'pair_callback' )
-		);
-		$this->wp_facade->add_action(
-			'user_profile_update_errors',
-			array( $this, 'pair_errors_callback' )
-		);
-		$this->wp_facade->add_action(
-			'wp_ajax_' . static::WHITE_LABEL_PAIR_ACTION,
-			array( $this, 'white_label_pair_callback' )
-		);
-		$this->wp_facade->add_action(
-			'wp_ajax_nopriv_' . static::WHITE_LABEL_PAIR_ACTION,
-			array( $this, 'white_label_pair_callback' )
-		);
-	}
-
-	/**
-	 * @param $user_id
-	 * @param $launchkey_username
-	 *
-	 * @return null|WP_Error
-	 */
-	private function authenticate_user( $user_id, $launchkey_username ) {
-		// reset user authentication
-		$this->reset_auth( $user_id );
-
-		// Get the auth client from the SDK
-		$auth = $this->launchkey_client->auth();
-		try {
-			// Authenticate and get the request ID
-			$auth_request = $auth->authenticate( $launchkey_username )->getAuthRequestId();
-
-			// Set the auth request ID in the user metadata to be available to the server side event
-			$this->wp_facade->update_user_meta( $user_id, 'launchkey_auth', $auth_request );
-
-			// Loop until a response has been recorded by the SSE callback
-			do {
-				// Sleep before checking for the response to not kill the server
-				sleep( 1 );
-
-				// See if the user has authorized
-				$auth = $this->get_user_authorized( $user_id );
-			} while ( null === $auth ); // If the response is null, continue the loop
-
-			if ( $auth ) {
-				// If the user accepted, return true
-				$response = true;
-			} else {
-				// Otherwise, return an error
-				$response = new WP_Error(
-					'launchkey_authentication_denied',
-					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
-				);;
-			}
-		} catch ( Exception $e ) {
-			// Process exceptions appropriately
-			$response = new WP_Error();
-			if ( $e instanceof \LaunchKey\SDK\Service\Exception\NoPairedDevicesError ) {
-				$response->add(
-					'launchkey_authentication_denied',
-					$this->wp_facade->__( 'No Paired Devices!', $this->language_domain )
-				);
-			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\NoSuchUserError ) {
-				$response->add(
-					'launchkey_authentication_denied',
-					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
-				);
-			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\RateLimitExceededError ) {
-				$response->add(
-					'launchkey_authentication_denied',
-					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
-				);
-			} elseif ( $e instanceof \LaunchKey\SDK\Service\Exception\ExpiredAuthRequestError ) {
-				$response->add(
-					'launchkey_authentication_timeout',
-					$this->wp_facade->__( 'Authentication denied!', $this->language_domain )
-				);
-			} else {
-				if ( $this->wp_facade->is_debug_log() ) {
-					$this->wp_facade->error_log( 'Error authenticating user with Launchkey: ' . $e->getMessage() );
-				}
-				$response->add(
-					'launchkey_authentication_error',
-					$this->wp_facade->__( 'Authentication error!  Please try again later', $this->language_domain )
-				);
-			}
-		}
-
-		return $response;
-	}
-
-	/**
-	 * @param $user_id
-	 */
-	private function reset_auth( $user_id ) {
-		$this->wp_facade->update_user_meta( $user_id, 'launchkey_auth', null );
-		$this->wp_facade->update_user_meta( $user_id, 'launchkey_authorized', null );
-	}
-
-	/**
-	 * @param $user_id
-	 *
-	 * @return boolean
-	 */
-	private function get_user_authorized( $user_id ) {
-		$db    = $this->wp_facade->get_wpdb();
-		$value =
-			$db->get_var( $db->prepare( "SELECT meta_value FROM $db->usermeta WHERE user_id = %s AND meta_key = 'launchkey_authorized' LIMIT 1",
-				$user_id ) );
-		if ( 'true' === $value ) {
-			$authorized = true;
-		} elseif ( 'false' === $value ) {
-			$authorized = false;
-		} else {
-			$authorized = null;
-		}
-
-		return $authorized;
-	}
-
-	/**
 	 * @return mixed
 	 */
-	private function get_option() {
-		return $this->is_multi_site ? $this->wp_facade->get_site_option( LaunchKey_WP_Admin::OPTION_KEY ) :
-			$this->wp_facade->get_option( LaunchKey_WP_Admin::OPTION_KEY );
+	private function update_option( $key ) {
+		return $this->is_multi_site ? $this->wp_facade->update_site_option( $key ) :
+			$this->wp_facade->update_option( $key );
 	}
 }

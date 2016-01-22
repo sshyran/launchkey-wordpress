@@ -125,9 +125,9 @@ class LaunchKey_WP_Admin {
 		$hasCurl          = $this->wp_facade->extension_loaded( 'curl' );
 		$hasDOM           = $this->wp_facade->extension_loaded( 'dom' );
 		$hasPrerequisites = ( $hasCurl && $hasDOM && $hasMcrypt && $hasOpenSSL );
+
 		$this->render_template( 'admin/settings', array(
-			'callback_url'              => $this->wp_facade->admin_url( 'admin-ajax.php?action=' .
-			                                                            LaunchKey_WP_Native_Client::CALLBACK_AJAX_ACTION ),
+			'callback_url'              => $this->get_callback_url(),
 			'sso_post_url'              => $this->wp_facade->wp_login_url(),
 			'domain'                    => $this->wp_facade->parse_url( $this->wp_facade->admin_url(), PHP_URL_HOST ),
 			'rocket_key'                => $options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
@@ -218,31 +218,38 @@ class LaunchKey_WP_Admin {
 	/**
 	 * Add links to additional actions to the actions links in the plugins list
 	 *
-	 * @param $standard_links
+	 * @param $links
 	 *
 	 * @return array
 	 *
 	 * @since 1.0.0
 	 */
-	public function add_action_links( $standard_links ) {
+	public function add_action_links( $links ) {
 		static $template = '<a href="%s">%s</a>';
-		$links                  = array(
-			sprintf(
-				$template,
-				$this->get_settings_page( true ),
-				$this->wp_facade->__( 'Setup Wizard', $this->language_domain )
-			),
-			sprintf(
-				$template,
-				$this->get_settings_page(),
-				$this->wp_facade->__( 'Settings', $this->language_domain )
-			)
+		$links[] = sprintf(
+			$template,
+			$this->get_settings_page( true ),
+			$this->wp_facade->__( 'Setup Wizard', $this->language_domain )
 		);
-		$altered_standard_links = array_filter( $standard_links, function ( $value ) {
-			return preg_match( '/plugin\-editor/', $value ) === 0;
-		} );
 
-		return array_merge( $links, $altered_standard_links );
+		$links[] = sprintf(
+			$template,
+			$this->get_settings_page(),
+			$this->wp_facade->__( 'Settings', $this->language_domain )
+		);
+
+		return $links;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_callback_url() {
+		$callback_url = $this->wp_facade->admin_url(
+			'admin-ajax.php?action=' . LaunchKey_WP_Native_Client::CALLBACK_AJAX_ACTION
+		);
+
+		return $callback_url;
 	}
 
 	private function render_template( $template, $context = array() ) {
@@ -375,7 +382,6 @@ class LaunchKey_WP_Admin {
 			}
 		}
 
-
 		$app_display_name = isset( $input[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ] ) ?
 			trim( $input[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ] ) : null;
 		if (
@@ -404,7 +410,7 @@ class LaunchKey_WP_Admin {
 			);
 		} else if ( ! empty( $_FILES['private_key']['tmp_name'] ) ) {
 			$private_key = @file_get_contents( $_FILES['private_key']['tmp_name'] );
-			$rsa = new \phpseclib\Crypt\RSA();
+			$rsa         = new \phpseclib\Crypt\RSA();
 			if ( @$rsa->loadKey( $private_key ) ) {
 				if ( $rsa->getPrivateKey( $rsa->privateKeyFormat ) ) {
 					$options[ LaunchKey_WP_Options::OPTION_PRIVATE_KEY ] = $private_key;
@@ -429,7 +435,8 @@ class LaunchKey_WP_Admin {
 	private function get_settings_page( $wizard = false ) {
 		$page = $this->is_multi_site ? 'network/settings.php' : 'options-general.php';
 		$page .= '?page=launchkey-settings';
-		$page .= $wizard ? '#wizard-1' : '' ;
+		$page .= $wizard ? '#wizard-home' : '';
+
 		return $this->wp_facade->admin_url( $page );
 	}
 }

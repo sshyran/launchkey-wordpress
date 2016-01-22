@@ -42,6 +42,17 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 	 */
 	private $is_multi_site;
 
+	/**
+	 * @Mock
+	 * @var \LaunchKey\SDK\Service\CryptService
+	 */
+	private $crypt;
+
+	/**
+	 * @var WP_User
+	 */
+	private $user;
+
 	public function test_does_nothing_when_no_nonce() {
 		unset( $_POST['nonce'] );
 		$this->wizard->wizard_submit_ajax();
@@ -77,6 +88,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$wizard = new LaunchKey_WP_Configuration_Wizard(
 				$this->facade,
 				$this->admin,
+				$this->crypt,
 				false,
 				$this->client
 		);
@@ -93,6 +105,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$wizard = new LaunchKey_WP_Configuration_Wizard(
 				$this->facade,
 				$this->admin,
+				$this->crypt,
 				true,
 				$this->client
 		);
@@ -147,6 +160,10 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 
 		Phake::when( $this->facade )->current_user_can( Phake::anyParameters() )->thenReturn( true );
 
+		$this->user = new WP_User();
+
+		Phake::when($this->facade)->get_current_user()->thenReturn( $this->user );
+
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 		$_POST['action'] = null;
 		$_POST['nonce'] = 'expected';
@@ -156,6 +173,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$this->wizard = new LaunchKey_WP_Configuration_Wizard(
 			$this->facade,
 			$this->admin,
+			$this->crypt,
 			$this->is_multi_site,
 			$this->client
 		);
@@ -167,6 +185,7 @@ class LaunchKey_WP_Configuration_Wizard_Submit_Ajax_Test extends PHPUnit_Framewo
 		$this->admin = null;
 		$this->client = null;
 		$this->is_multi_site = null;
+		$this->crypt = null;
 
 		foreach ( array_keys( $_SERVER ) as $key ) {
 			unset( $_SERVER[$key] );

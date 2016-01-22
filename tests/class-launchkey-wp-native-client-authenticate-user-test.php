@@ -70,7 +70,7 @@ class LaunchKey_WP_Native_Client_Authenticate_User_Test extends LaunchKey_WP_Nat
 			'Any Other'            => array(
 				'\Exception',
 				'launchkey_authentication_error',
-				'Authentication error!  Please try again later'
+				'Authentication error! Please try again later'
 			),
 		);
 	}

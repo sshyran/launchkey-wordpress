@@ -135,6 +135,24 @@ a.launchkey-activate-banner-btn:hover {background-color:#eee; color: #000;}
 a.lk-next {font-weight:bold;text-decoration:none;border-radius:4px;border: solid 1px #CECECE;color: #000;background-color: #fff;padding: 12px 8px;font-size: 16px;  margin: 0 0 0 auto;display: block;max-width: 90px;text-align: center;}
 a.lk-next:hover {background-color: #ECECEC;color:#000;}
 a {cursor: pointer;}
+.lk-two-panel {display: inline-block;width: 40%; background-color: #fff;border-radius:4px;border: solid 1px #CECECE;vertical-align: top;padding: 1em 3em;position: relative;
+	margin: 30px;
+	max-width: 400px;
+	height: 340px;
+}
+.lk-two-panel .lk-copy-fixed-height {height: 140px;}
+@media (max-width: 1298px) {
+	.lk-two-panel {
+		padding: 2em;
+		height: auto;
+		width: 90%;
+		margin: 15px auto;
+		display: block;
+	}
+	.lk-two-panel .lk-copy-fixed-height {
+		height: auto;
+	}
+}
 .lk-three-panel {display: inline-block;width: 25%; background-color: #fff;border-radius:4px;border: solid 1px #CECECE;vertical-align: top;padding: 1em 3em;position: relative;
 	margin: 30px;
 	max-width: 300px;
