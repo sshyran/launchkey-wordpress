@@ -18,14 +18,6 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	 */
 	private $deorbit_callback;
 
-	public function test_deorbit_query_parameter_has_slashes_stripped() {
-		$_GET['deorbit'] = '{\"key\": \"value\"}';
-		$expected        = array( 'deorbit' => '{"key": "value"}' );
-		$this->client->launchkey_callback();
-		Phake::verify( $this->sdk_auth )->handleCallback( Phake::capture( $actual ) );
-		$this->assertEquals( $expected, $actual );
-	}
-
 	public function provider_exception_correct_response() {
 		return array(
 			'Invalid requests are 400'      => array(
@@ -50,22 +42,22 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	 * @param $expected_status_code
 	 */
 	public function test_exceptions_return_correct_response( $exception_class, $expected_status_message, $expected_status_code ) {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenThrow( Phake::mock( $exception_class ) );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenThrow( Phake::mock( $exception_class ) );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->wp_die( $expected_status_message, $expected_status_code );
 	}
 
 	public function test_exceptions_do_not_log_when_not_debug() {
 		Phake::when( $this->facade )->is_debug_log()->thenReturn( false );
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenThrow( new Exception() );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenThrow( new Exception() );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade, Phake::never() )->error_log( Phake::anyParameters() );
 	}
 
 	public function test_exceptions_log_when_debug() {
 		Phake::when( $this->facade )->is_debug_log()->thenReturn( true );
-		Phake::when( $this->sdk_auth )
-		     ->handleCallback( Phake::anyParameters() )
+		Phake::when( $this->sdk_sse )
+		     ->handleEvent( Phake::anyParameters() )
 		     ->thenThrow( new Exception( 'Expected Message' ) );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->error_log( $this->stringContains( 'Expected Message' ) );
@@ -73,7 +65,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 
 	public function test_auth_response_callback_searches_for_user_by_auth_request_id() {
 		Phake::when( $this->auth_response )->getAuthRequestId()->thenReturn( 'Auth Request ID' );
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->get_users( Phake::capture( $actual ) );
 		$this->assertEquals( array( 'meta_key' => 'launchkey_auth', 'meta_value' => 'Auth Request ID' ), $actual );
@@ -85,7 +77,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	public function test_auth_response_callback_when_no_user_found_for_auth_invalid_request_is_returned() {
 		Phake::when( $this->facade )->get_users( Phake::anyParameters() )->thenReturn( array() );
 
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 );
 	}
@@ -94,7 +86,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	 * @depends test_auth_response_callback_searches_for_user_by_auth_request_id
 	 */
 	public function test_auth_response_callback_when_mulitple_users_found_for_auth_invalid_request_is_returned() {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		Phake::when( $this->facade )->get_users( Phake::anyParameters() )->thenReturn( array(
 			$this->user,
 			$this->user
@@ -105,8 +97,8 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 
 	public function provider_authorized_to_meta_value() {
 		return array(
-			array( true, 'true' ),
-			array( false, 'false' ),
+			"Unauthorized" => array( true, 'true' ),
+			"Authorized" => array( false, 'false' ),
 		);
 	}
 
@@ -117,14 +109,14 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	 * @param $expected_meta_value
 	 */
 	public function test_auth_response_callback_updates_authorized_with_correct_value( $authorized_value, $expected_meta_value ) {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		Phake::when( $this->auth_response )->isAuthorized()->thenReturn( $authorized_value );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_authorized', $expected_meta_value );
 	}
 
 	public function test_auth_response_callback_sets_user_hash_in_launchkey_user_meta() {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		Phake::when( $this->auth_response )->getUserHash()->thenReturn( $expected = 'Expceted User Hash' );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_user', $expected );
@@ -134,7 +126,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 		Phake::when( $this->facade )
 		     ->get_option( Phake::anyParameters() )
 		     ->thenReturn( array( LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::NATIVE ) );
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		Phake::when( $this->auth_response )->getUserPushId()->thenReturn( $expected = 'Expceted User Push ID' );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_username', $expected );
@@ -156,7 +148,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 		Phake::when( $this->facade )
 		     ->get_option( Phake::anyParameters() )
 		     ->thenReturn( array( LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => $type ) );
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->auth_response );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->auth_response );
 		Phake::when( $this->auth_response )->getUserPushId()->thenReturn( $expected = 'Expceted User Push ID' );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade, Phake::never() )
@@ -165,7 +157,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 
 	public function test_deorbit_callback_searches_for_user_by_user_hash() {
 		Phake::when( $this->deorbit_callback )->getUserHash()->thenReturn( 'User hash' );
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->get_users( Phake::capture( $actual ) );
 		$this->assertEquals( array( 'meta_key' => 'launchkey_user', 'meta_value' => 'User hash' ), $actual );
@@ -177,7 +169,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	public function test_deorbit_callback_when_no_user_found_for_auth_invalid_request_is_returned() {
 		Phake::when( $this->facade )->get_users( Phake::anyParameters() )->thenReturn( array() );
 
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 );
 	}
@@ -186,7 +178,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	 * @depends test_deorbit_callback_searches_for_user_by_user_hash
 	 */
 	public function test_deorbit_callback_when_mulitple_users_found_for_auth_invalid_request_is_returned() {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
 		Phake::when( $this->facade )->get_users( Phake::anyParameters() )->thenReturn( array(
 			$this->user,
 			$this->user
@@ -196,21 +188,45 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	}
 
 	public function test_deorbit_callback_sets_launchkey_authorized_user_metadata_to_false() {
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->facade )->update_user_meta( $this->user->ID, 'launchkey_authorized', 'false' );
 	}
 
 	public function test_deorbit_callback_calls_launchkey_deorbit_with_last_auth() {
 		$this->user->launchkey_auth = 'Expected Auth Request ID';
-		Phake::when( $this->sdk_auth )->handleCallback( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
+		Phake::when( $this->sdk_sse )->handleEvent( Phake::anyParameters() )->thenReturn( $this->deorbit_callback );
 		$this->client->launchkey_callback();
 		Phake::verify( $this->sdk_auth )->deOrbit( 'Expected Auth Request ID' );
 	}
 
+	public function test_correct_method_is_passed_to_request() {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$this->client->launchkey_callback();
+		Phake::verify($this->sdk_sse)->handleEvent(Phake::capture($request), $this->anything());
+		$this->assertEquals('POST', $request->getMethod());
+	}
+
+	public function test_correct_protocol_version_is_passed_to_request() {
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.0';
+		$this->client->launchkey_callback();
+		Phake::verify($this->sdk_sse)->handleEvent(Phake::capture($request), $this->anything());
+		$this->assertEquals('1.0', $request->getProtocolVersion());
+	}
+
+	public function test_headers_are_passed_to_request() {
+		$_SERVER['HTTP_MY_HEADER'] = 'Expected Header Value';
+		$this->client->launchkey_callback();
+		Phake::verify($this->sdk_sse)->handleEvent(Phake::capture($request), $this->anything());
+		$this->assertEquals(array('Expected Header Value'), $request->getHeader('my-header'));
+	}
 
 	protected function setUp() {
 		parent::setUp();
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.0';
+		$_SERVER['REQUEST_URI'] = '/';
+
 		$this->user->launchkey_auth = null;
 		Phake::when( $this->facade )->get_users( Phake::anyParameters() )->thenReturn( array(
 			$this->user
@@ -218,6 +234,7 @@ class LaunchKey_WP_Native_Client_Callback_Handler_Test extends LaunchKey_WP_Nati
 	}
 
 	protected function tearDown() {
+		$_SERVER = array();
 		$this->auth_response    = null;
 		$this->deorbit_callback = null;
 		parent::tearDown();

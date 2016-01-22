@@ -34,9 +34,10 @@
  * @method WP_User get_user_by() get_user_by( string $field, mixed $value )
  *
  * @method mixed get_option() get_option( string $option, mixed $default = false )
- * @method mixed get_network_option() get_network_option( string $option, mixed $default = false )
+ * @method mixed get_site_option() get_site_option( string $option, mixed $default = false )
  * @method bool add_option() add_option( string $option, mixed $value = '', string $deprecated = '', string $autoload = 'yes' )
  * @method bool update_option() update_option( string $option, mixed $value, string $autoload = null )
+ * @method bool update_site_option() update_site_option( string $option, mixed $value, string $autoload = null )
  * @method bool delete_option() delete_option( string $option )
  * @method null register_setting() register_setting( string $option_group, string $option_name, callable $sanitize_callback = '' )
  *
@@ -52,6 +53,7 @@
  * @method string admin_url() admin_url( string $path = '', string $scheme = 'admin' )
  * @method string wp_guess_url wp_guess_url()
  * @method null wp_die() wp_die ( mixed $message = '', mixed $title = '', mixed $args = array() )
+ * @method null wp_send_json() wp_send_json ( mixed $response )
  *
  * @method WP_Error|array wp_remote_get() wp_remote_get( string $url, array $args = array() )
  * @method WP_Error|array wp_remote_request() wp_remote_request( string $url, array $args = array() )
@@ -64,9 +66,9 @@
  * @method null add_settings_error() add_settings_error( string $setting, string $code, string $message, string $type = 'error' )
  * @method null add_settings_field() add_settings_field( string $id, string $title, callable $callback, string $page, string $section = 'default', array $args = array() )
  * @method bool is_multisite() is_multisite()
+ * @method string dirname() dirname( string $dir )
  */
 class LaunchKey_WP_Global_Facade {
-
 	/**
 	 * Wrapper for native PHP echo command.
 	 *

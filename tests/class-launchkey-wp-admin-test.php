@@ -217,15 +217,9 @@ class LaunchKey_WP_Admin_Test extends PHPUnit_Framework_TestCase {
 	public function test_add_action_links_adds_link_for_wizard() {
 		$actual = $this->admin->add_action_links( array() );
 		$this->assert_array_contains(
-			'<a href="AdminURL [options-general.php?page=launchkey-settings#wizard-1]">TRANSLATED [Setup Wizard]</a>',
+			'<a href="AdminURL [options-general.php?page=launchkey-settings#wizard-home]">TRANSLATED [Setup Wizard]</a>',
 			$actual
 		);
-	}
-
-	public function test_add_action_links_removes_link_for_edit() {
-		$standard_links = array( 'edit' => '<a href="plugin-editor.php?file=akismet/akismet.php" title="Open this file in the Plugin Editor" class="edit">Edit</a>' );
-		$actual         = $this->admin->add_action_links( $standard_links );
-		$this->assertArrayNotHasKey( 'edit', $actual );
 	}
 
 	public function test_register_actions_registers_add_launchkey_admin_menus_method_for_admin_menu_when_not_multisite() {

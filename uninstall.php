@@ -10,8 +10,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+require_once 'vendor/autoload.php';
+
 //remove launchkey options
-delete_option( 'launchkey' );
+delete_option( LaunchKey_WP_Admin::OPTION_KEY );
+delete_option( LaunchKey_WP_Configuration_Wizard::EASY_SETUP_OPTION );
 
 //remove user pairings and auth data
 delete_metadata( 'user', 0, 'launchkey_username',    '', true );
