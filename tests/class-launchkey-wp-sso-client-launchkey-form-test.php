@@ -203,7 +203,7 @@ class LaunchKey_WP_SSO_Client_LaunchKey_Form_Test extends LaunchKey_WP_SSO_Clien
 	 * @param SAML2_AuthnRequest $request
 	 */
 	public function test_login_url_request_uses_login_url_as_assertion_consumer_service_url( SAML2_AuthnRequest $request ) {
-		$this->assertEquals( "WP Login URL", $request->getAssertionConsumerServiceURL() );
+		$this->assertEquals( "SiteURL wp-login.php/login_post", $request->getAssertionConsumerServiceURL() );
 	}
 
 	/**
@@ -287,6 +287,8 @@ class LaunchKey_WP_SSO_Client_LaunchKey_Form_Test extends LaunchKey_WP_SSO_Clien
 		} );
 
 
-		Phake::when( $this->facade )->wp_login_url( Phake::anyParameters() )->thenReturn( "WP Login URL" );
+		Phake::when( $this->facade )->site_url( Phake::anyParameters() )->thenReturnCallback( function ($method, $parameters) {
+			return sprintf("SiteURL %s/%s", $parameters[0], $parameters[1]);
+		});
 	}
 }

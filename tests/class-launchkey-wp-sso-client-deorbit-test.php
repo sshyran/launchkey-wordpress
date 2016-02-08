@@ -41,8 +41,8 @@ class LaunchKey_WP_SSO_Client_Deorbit_Test extends LaunchKey_WP_SSO_Client_Test_
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->facade )->get_user_by( Phake::anyParameters() ),
-				Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
+			Phake::verify( $this->facade )->get_user_by( Phake::anyParameters() ),
+			Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
 		);
 	}
 
@@ -50,9 +50,9 @@ class LaunchKey_WP_SSO_Client_Deorbit_Test extends LaunchKey_WP_SSO_Client_Test_
 		Phake::when( $this->user )->get( Phake::anyParameters() )->thenReturn( "Some other session ID" );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->facade )->get_user_by( Phake::anyParameters() ),
-				Phake::verify( $this->user )->get( Phake::anyParameters() ),
-				Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
+			Phake::verify( $this->facade )->get_user_by( Phake::anyParameters() ),
+			Phake::verify( $this->user )->get( Phake::anyParameters() ),
+			Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
 		);
 	}
 
@@ -76,8 +76,8 @@ class LaunchKey_WP_SSO_Client_Deorbit_Test extends LaunchKey_WP_SSO_Client_Test_
 		Phake::when( $this->saml_request_service )->is_valid_destination( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_request_service )->is_valid_destination( Phake::anyParameters() ),
-				Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
+			Phake::verify( $this->saml_request_service )->is_valid_destination( Phake::anyParameters() ),
+			Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
 		);
 	}
 
@@ -90,8 +90,8 @@ class LaunchKey_WP_SSO_Client_Deorbit_Test extends LaunchKey_WP_SSO_Client_Test_
 		Phake::when( $this->saml_request_service )->is_timestamp_within_restrictions( Phake::anyParameters() )->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
-				Phake::verify( $this->saml_request_service )->is_timestamp_within_restrictions( static::NOW ),
-				Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
+			Phake::verify( $this->saml_request_service )->is_timestamp_within_restrictions( static::NOW ),
+			Phake::verify( $this->facade )->wp_die( 'Invalid Request', 400 )
 		);
 	}
 
@@ -102,14 +102,14 @@ class LaunchKey_WP_SSO_Client_Deorbit_Test extends LaunchKey_WP_SSO_Client_Test_
 		$this->user->ID = "User ID";
 		Phake::when( $this->user )->get( "launchkey_sso_session" )->thenReturn( self::SESSION_INDEX );
 		foreach ( $_REQUEST as $key => $value ) {
-			unset( $_REQUEST[$key] );
+			unset( $_REQUEST[ $key ] );
 		}
 
 		$_REQUEST["SAMLRequest"] = self::SAML_REQUEST;
 
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( $this->user );
 		Phake::when( $this->facade )->time( Phake::anyParameters() )->thenReturn( static::NOW );
-		Phake::when( $this->facade )->wp_login_url()->thenReturn( static::SSO_POST_URL );
+		Phake::when( $this->facade )->site_url( Phake::anyParameters() )->thenReturn( static::SSO_POST_URL );
 
 		Phake::when( $this->saml_request_service )->get_session_index()->thenReturn( static::SESSION_INDEX );
 		Phake::when( $this->saml_request_service )->get_name()->thenReturn( static::NAME );
