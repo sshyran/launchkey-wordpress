@@ -127,118 +127,39 @@ class LaunchKey_WP_Admin {
 		$hasPrerequisites = ( $hasCurl && $hasDOM && $hasMcrypt && $hasOpenSSL );
 
 		$this->render_template( 'admin/settings', array(
-			'callback_url'              => $this->get_callback_url(),
-			'sso_post_url'              => $this->wp_facade->wp_login_url(),
-			'domain'                    => $this->wp_facade->parse_url( $this->wp_facade->admin_url(), PHP_URL_HOST ),
-			'rocket_key'                => $options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
-			'app_display_name'          => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ],
-			'ssl_verify_checked'        => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] ? 'checked="checked"' :
-				'',
-			'mcrypt_pass_fail'          => $hasMcrypt ? 'pass' : 'fail',
-			'openssl_pass_fail'         => $hasOpenSSL ? 'pass' : 'fail',
-			'curl_pass_fail'            => $hasCurl ? 'pass' : 'fail',
-			'dom_pass_fail'             => $hasDOM ? 'pass' : 'fail',
-			'show_sso_next'             => $hasPrerequisites ? 'show' : 'hide',
-			'show_sso_back'             => $hasPrerequisites ? 'hide' : 'show',
-			'wp_username'               => $this->wp_facade->wp_get_current_user()->user_login,
-			'sso_entity_id'             => $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
-			'sso_public_key'            => $options[ LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE ],
-			'sso_login_url'             => $options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
-			'sso_logout_url'            => $options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
-			'sso_error_url'             => $options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ],
-			'settings-sso-visible'      => LaunchKey_WP_Implementation_Type::SSO ===
-			                               $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] ? "" : "hide",
-			'settings-standard-visible' => LaunchKey_WP_Implementation_Type::SSO ===
-			                               $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] ? "hide" : "",
+			'callback_url'        => $this->get_callback_url(),
+			'sso_post_url'        => $this->wp_facade->site_url('wp-login.php', 'login_post'),
+			'domain'              => $this->wp_facade->parse_url( $this->wp_facade->admin_url(), PHP_URL_HOST ),
+			'rocket_key'          => $options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ],
+			'app_display_name'    => $options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ],
+			'ssl_verify_checked'  => $options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] ? 'checked="checked"' : '',
+			'mcrypt_pass_fail'    => $hasMcrypt ? 'pass' : 'fail',
+			'openssl_pass_fail'   => $hasOpenSSL ? 'pass' : 'fail',
+			'curl_pass_fail'      => $hasCurl ? 'pass' : 'fail',
+			'dom_pass_fail'       => $hasDOM ? 'pass' : 'fail',
+			'show_sso_next'       => $hasPrerequisites ? 'show' : 'hide',
+			'show_sso_back'       => $hasPrerequisites ? 'hide' : 'show',
+			'wp_username'         => $this->wp_facade->wp_get_current_user()->user_login,
+			'sso_entity_id'       => $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ],
+			'sso_public_key'      => $options[ LaunchKey_WP_Options::OPTION_SSO_CERTIFICATE ],
+			'sso_login_url'       => $options[ LaunchKey_WP_Options::OPTION_SSO_LOGIN_URL ],
+			'sso_logout_url'      => $options[ LaunchKey_WP_Options::OPTION_SSO_LOGOUT_URL ],
+			'sso_error_url'       => $options[ LaunchKey_WP_Options::OPTION_SSO_ERROR_URL ],
 		) );
 	}
 
-	public function check_option( $input ) {
-		$options = $original_options = $this->get_launchkey_options();
-		$errors  = array();
-
-		$implementation_type = $this->process_implementation_type( $input, $errors, $options );
-
-		if ( LaunchKey_WP_Implementation_Type::SSO === $implementation_type ) {
-			$this->process_sso_options( $input, $errors, $options );
-		} else {
-			$this->process_standard_options( $input, $errors, $options );
-		}
-
-		$options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] =
-			isset( $input[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] ) &&
-			'on' === $input[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ];
-
-		return array( $options, $errors );
-	}
-
 	/**
-	 * Display a deprecation notice if the current implementation type in OAuth
-	 *
-	 * @since 1.0.0
-	 */
-	public function oauth_warning() {
-		$options = $this->get_launchkey_options();
-		if ( LaunchKey_WP_Implementation_Type::OAUTH ===
-		     $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
-		) {
-			$this->render_template( 'admin/oauth-deprecation-warning' );
-		}
-	}
-
-	/**
-	 * Display a deprecation notice if the current implementation type in OAuth
-	 *
-	 * @since 1.0.0
-	 */
-	public function activate_notice() {
-		$options     = $this->get_launchkey_options();
-		$hook_suffix = $this->wp_facade->get_hook_suffix();
-
-		// If we are on a relevant page to the plugin and it's not configured, show the activate banner
-		if ( in_array( $hook_suffix, array( 'plugins.php', 'users.php', 'profile.php' ) ) &&
-		     (
-			     ( LaunchKey_WP_Implementation_Type::SSO ===
-			       $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
-			       && empty( $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ] ) )
-			     || ( LaunchKey_WP_Implementation_Type::SSO !==
-			          $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
-			          && empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] )
-			     )
-		     )
-		) {
-			$this->render_template( 'admin/activate-plugin', array(
-				'settings_url' => $this->get_settings_page(),
-				'icon_url'     => $this->wp_facade->plugins_url( '/public/launchkey-logo-white.png',
-					dirname( __FILE__ ) )
-			) );
-		}
-	}
-
-	/**
-	 * Add links to additional actions to the actions links in the plugins list
-	 *
-	 * @param $links
-	 *
 	 * @return array
-	 *
-	 * @since 1.0.0
 	 */
-	public function add_action_links( $links ) {
-		static $template = '<a href="%s">%s</a>';
-		$links[] = sprintf(
-			$template,
-			$this->get_settings_page( true ),
-			$this->wp_facade->__( 'Setup Wizard', $this->language_domain )
-		);
+	private function get_launchkey_options() {
+		$options = $this->is_multi_site ? $this->wp_facade->get_site_option( static::OPTION_KEY ) :
+			$this->wp_facade->get_option( static::OPTION_KEY );
 
-		$links[] = sprintf(
-			$template,
-			$this->get_settings_page(),
-			$this->wp_facade->__( 'Settings', $this->language_domain )
-		);
+		return $options;
+	}
 
-		return $links;
+	private function render_template( $template, $context = array() ) {
+		$this->wp_facade->_echo( $this->template->render_template( $template, $context ) );
 	}
 
 	/**
@@ -252,18 +173,27 @@ class LaunchKey_WP_Admin {
 		return $callback_url;
 	}
 
-	private function render_template( $template, $context = array() ) {
-		$this->wp_facade->_echo( $this->template->render_template( $template, $context ) );
-	}
+	public function check_option( $input ) {
+		$options = $original_options = $this->get_launchkey_options();
+		$errors  = array();
 
-	/**
-	 * @return array
-	 */
-	private function get_launchkey_options() {
-		$options = $this->is_multi_site ? $this->wp_facade->get_site_option( static::OPTION_KEY ) :
-			$this->wp_facade->get_option( static::OPTION_KEY );
+		$implementation_type = $this->process_implementation_type( $input, $errors, $options );
 
-		return $options;
+		if ( LaunchKey_WP_Implementation_Type::SSO === $implementation_type ) {
+			$this->process_sso_options( $input, $errors, $options );
+		} elseif (
+			LaunchKey_WP_Implementation_Type::NATIVE == $implementation_type ||
+			LaunchKey_WP_Implementation_Type::WHITE_LABEL == $implementation_type ||
+			LaunchKey_WP_Implementation_Type::OAUTH == $implementation_type
+		) {
+			$this->process_standard_options( $input, $errors, $options );
+		}
+
+		$options[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] =
+			isset( $input[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ] ) &&
+			'on' === $input[ LaunchKey_WP_Options::OPTION_SSL_VERIFY ];
+
+		return array( $options, $errors );
 	}
 
 	/**
@@ -430,6 +360,49 @@ class LaunchKey_WP_Admin {
 	}
 
 	/**
+	 * Display a deprecation notice if the current implementation type in OAuth
+	 *
+	 * @since 1.0.0
+	 */
+	public function oauth_warning() {
+		$options = $this->get_launchkey_options();
+		if ( LaunchKey_WP_Implementation_Type::OAUTH ===
+		     $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
+		) {
+			$this->render_template( 'admin/oauth-deprecation-warning' );
+		}
+	}
+
+	/**
+	 * Display a deprecation notice if the current implementation type in OAuth
+	 *
+	 * @since 1.0.0
+	 */
+	public function activate_notice() {
+		$options     = $this->get_launchkey_options();
+		$hook_suffix = $this->wp_facade->get_hook_suffix();
+
+		// If we are on a relevant page to the plugin and it's not configured, show the activate banner
+		if ( in_array( $hook_suffix, array( 'plugins.php', 'users.php', 'profile.php' ) ) &&
+		     (
+			     ( LaunchKey_WP_Implementation_Type::SSO ===
+			       $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
+			       && empty( $options[ LaunchKey_WP_Options::OPTION_SSO_ENTITY_ID ] ) )
+			     || ( LaunchKey_WP_Implementation_Type::SSO !==
+			          $options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ]
+			          && empty( $options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] )
+			     )
+		     )
+		) {
+			$this->render_template( 'admin/activate-plugin', array(
+				'settings_url' => $this->get_settings_page(),
+				'icon_url'     => $this->wp_facade->plugins_url( '/public/launchkey-logo-white.png',
+					dirname( __FILE__ ) )
+			) );
+		}
+	}
+
+	/**
 	 * @return string
 	 */
 	private function get_settings_page( $wizard = false ) {
@@ -438,5 +411,31 @@ class LaunchKey_WP_Admin {
 		$page .= $wizard ? '#wizard-home' : '';
 
 		return $this->wp_facade->admin_url( $page );
+	}
+
+	/**
+	 * Add links to additional actions to the actions links in the plugins list
+	 *
+	 * @param $links
+	 *
+	 * @return array
+	 *
+	 * @since 1.0.0
+	 */
+	public function add_action_links( $links ) {
+		static $template = '<a href="%s">%s</a>';
+		$links[] = sprintf(
+			$template,
+			$this->get_settings_page( true ),
+			$this->wp_facade->__( 'Setup Wizard', $this->language_domain )
+		);
+
+		$links[] = sprintf(
+			$template,
+			$this->get_settings_page(),
+			$this->wp_facade->__( 'Settings', $this->language_domain )
+		);
+
+		return $links;
 	}
 }

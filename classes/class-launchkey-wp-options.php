@@ -207,7 +207,7 @@ class LaunchKey_WP_Options {
 			static::OPTION_PRIVATE_KEY => null,
 			static::OPTION_APP_DISPLAY_NAME => 'LaunchKey',
 			static::OPTION_SSL_VERIFY => true,
-			static::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::NATIVE,
+			static::OPTION_IMPLEMENTATION_TYPE => null,
 			static::OPTION_REQUEST_TIMEOUT => 60,
 			static::OPTION_LEGACY_OAUTH => false,
 			// Since 1.1.0

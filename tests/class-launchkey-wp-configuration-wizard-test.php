@@ -178,12 +178,12 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 		$this->wizard->register_actions();
 		Phake::verify( $this->facade )->add_filter( 'init', array(
 			$this->wizard,
-			'enqueue_wizard_script'
+			'enqueue_scripts'
 		) );
 	}
 
 	public function test_enqueue_wizard_script_enqueues_wizard_script() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->wp_enqueue_script(
 			'launchkey-wizard-script',
 			'Plugins URL',
@@ -194,7 +194,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_wizard_script_enqueues_qr_code_script() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->wp_enqueue_script(
 			'launchkey-qr-code-script',
 			'Plugins URL',
@@ -205,7 +205,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_wizard_script_supplies_correct_data_for_plugins_url() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		$reflection = new ReflectionClass( 'LaunchKey_WP_Configuration_Wizard' );
 		Phake::verify( $this->facade )->plugins_url(
 			'/public/launchkey-wizard.js',
@@ -216,7 +216,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	public function test_enqueue_wizard_script_localizes_script() {
 		$this->option_data[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] =
 			LaunchKey_WP_Implementation_Type::OAUTH;
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->wp_localize_script(
 			'launchkey-wizard-script',
 			'launchkey_wizard_config',
@@ -231,21 +231,21 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_wizard_script_supplies_admin_url_correct_value() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->admin_url(
 			'admin-ajax.php?action=' . LaunchKey_WP_Configuration_Wizard::DATA_SUBMIT_AJAX_ACTION
 		);
 	}
 
 	public function test_enqueue_wizard_script_supplies_create_nonce_correct_key() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->wp_create_nonce(
 			LaunchKey_WP_Configuration_Wizard::WIZARD_NONCE_KEY
 		);
 	}
 
 	public function test_enqueue_wizard_script_localizes_script_after_enqueueing_scripts() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::inOrder(
 			Phake::verify( $this->facade, Phake::atLeast( 1 ) )->wp_enqueue_script( Phake::anyParameters() ),
 			Phake::verify( $this->facade )->wp_localize_script( Phake::anyParameters() )
@@ -253,7 +253,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 	}
 
 	public function test_enqueue_wizard_script_uses_same_slug_for_enqueueing_and_localizing() {
-		$this->wizard->enqueue_wizard_script();
+		$this->wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->wp_enqueue_script(
 			'launchkey-wizard-script',
 			$this->anything(),
@@ -276,7 +276,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 			false,
 			$this->client
 		);
-		$wizard->enqueue_wizard_script();
+		$wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 
@@ -288,7 +288,7 @@ class LaunchKey_WP_Configuration_Wizard_Test extends PHPUnit_Framework_TestCase 
 			true,
 			$this->client
 		);
-		$wizard->enqueue_wizard_script();
+		$wizard->enqueue_scripts();
 		Phake::verify( $this->facade )->get_site_option( LaunchKey_WP_Admin::OPTION_KEY );
 	}
 
