@@ -123,7 +123,7 @@ class LaunchKey_WP_Configuration_Wizard {
 			array( $this, 'wizard_easy_setup_callback' )
 		);
 		$this->wp_facade->add_filter( 'init', array( $this, 'enqueue_verify_configuration_script' ) );
-		$this->wp_facade->add_filter( 'init', array( $this, 'enqueue_wizard_script' ) );
+		$this->wp_facade->add_filter( 'init', array( $this, 'enqueue_scripts' ) );
 	}
 
 	/**
@@ -219,7 +219,7 @@ class LaunchKey_WP_Configuration_Wizard {
 	/**
 	 * @since 1.0.0
 	 */
-	public function enqueue_wizard_script() {
+	public function enqueue_scripts() {
 		if ( $this->wp_facade->current_user_can( 'manage_options' ) ) {
 
 			$this->wp_facade->wp_enqueue_script(

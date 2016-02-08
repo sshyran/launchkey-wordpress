@@ -90,6 +90,12 @@
                     <include name="Tests/**" />
                     <exclude name="LICENSE" />
                 </fileset>
+                <fileset dir="./build/package/vendor/symfony/yaml">
+                    <include name="*" />
+                    <exclude name="*.php" />
+                    <include name="Tests/**" />
+                    <exclude name="LICENSE" />
+                </fileset>
                 <fileset dir="./build/package/vendor/ringcentral/psr7">
                     <include name="*" />
                     <include name="tests/**" />

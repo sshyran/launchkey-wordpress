@@ -182,7 +182,9 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	 * @param $expected
 	 */
 	public function test_check_option_return_for_non_file_input( $key, $value, $expected ) {
-		list( $actual, $errors ) = $this->client->check_option( array( $key => $value ) );
+		$options         = $this->options;
+		$options[ $key ] = $value;
+		list( $actual, $errors ) = $this->client->check_option( $options );
 		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 		$this->assertArrayHasKey( $key, $actual );
 		$this->assertSame( $expected, $actual[ $key ] );
@@ -226,7 +228,7 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	 */
 	public function test_check_option_return_for_file_input( $files_value, $expected ) {
 		$_FILES = $files_value;
-		list( $actual, $errors ) = $this->client->check_option( array() );
+		list( $actual, $errors ) = $this->client->check_option( $this->options );
 		Phake::verify( $this->facade )->get_option( LaunchKey_WP_Admin::OPTION_KEY );
 		$this->assertSame( $expected, $actual[ LaunchKey_WP_Options::OPTION_PRIVATE_KEY ] );
 	}
@@ -248,7 +250,9 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	 * @param $expected
 	 */
 	public function test_rocket_key_invalid_rocket_key_error( $value, $expected ) {
-		list( $actual, $errors ) = $this->client->check_option( array( LaunchKey_WP_Options::OPTION_ROCKET_KEY => $value ) );
+		$options                                            = $this->options;
+		$options[ LaunchKey_WP_Options::OPTION_ROCKET_KEY ] = $value;
+		list( $actual, $errors ) = $this->client->check_option( $options );
 		$this->assertContains( $expected, $errors );
 	}
 
@@ -262,12 +266,15 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	/**
 	 * @dataProvider data_provider_secret_key_invalid_secret_key_errors
 	 *
-	 * @param $value
+	 * @param $option
+	 * @param $input
 	 * @param $expected
 	 */
 	public function test_secret_key_invalid_secret_key_error( $option, $input, $expected ) {
+		$options                                                  = $this->options;
+		$options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ]       = $input;
 		$this->options[ LaunchKey_WP_Options::OPTION_SECRET_KEY ] = $option;
-		list( $actual, $errors ) = $this->client->check_option( array( LaunchKey_WP_Options::OPTION_SECRET_KEY => $input ) );
+		list( $actual, $errors ) = $this->client->check_option( $options );
 		$this->assertContains( $expected, $errors );
 	}
 
@@ -275,7 +282,7 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 		return array(
 			'OAuth and Launchkey'           => array( 'LaunchKey', LaunchKey_WP_Implementation_Type::OAUTH ),
 			'Native and Launchkey'          => array( 'LaunchKey', LaunchKey_WP_Implementation_Type::NATIVE ),
-			'Whtie Label and non-Launchkey' => array( 'Not LaunchKey', LaunchKey_WP_Implementation_Type::WHITE_LABEL ),
+			'White Label and non-Launchkey' => array( 'Not LaunchKey', LaunchKey_WP_Implementation_Type::WHITE_LABEL ),
 		);
 	}
 
@@ -286,8 +293,10 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	 * @param $implementation_type
 	 */
 	public function test_valid_app_display_name_and_implementation_type_combinations( $app_display_name, $implementation_type ) {
+		$options                                                           = $this->options;
+		$options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ]          = $app_display_name;
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = $implementation_type;
-		list( $actual, $errors ) = $this->client->check_option( array( 'app_display_name' => $app_display_name ) );
+		list( $actual, $errors ) = $this->client->check_option( $options );
 		$this->assertArrayHasKey( LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME, $actual );
 		$this->assertEquals( $app_display_name, $actual[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ] );
 	}
@@ -307,8 +316,10 @@ class LaunchKey_WP_Admin_Check_Option_Test extends PHPUnit_Framework_TestCase {
 	 * @param $implementation_type
 	 */
 	public function test_app_display_name_will_error_and_launchkey_for_invalid_app_display_name_and_implementation_type_combinations( $app_display_name, $implementation_type ) {
-		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = $implementation_type;
-		list( $actual, $errors ) = $this->client->check_option( array( 'app_display_name' => $app_display_name ) );
+		$options                                                           = $this->options;
+		$options[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ]          = $app_display_name;
+		$options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = $implementation_type;
+		list( $actual, $errors ) = $this->client->check_option( $options );
 		$this->assertContains( 'TRANSLATED [App Display Name can only be modified for White Label implementations]', $errors );
 		$this->assertArrayHasKey( LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME, $actual );
 		$this->assertEquals( 'LaunchKey', $actual[ LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME ] );

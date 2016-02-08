@@ -186,7 +186,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		$request->setDestination( $this->login_url );
 		$request->setIssuer( $this->entity_id );
 		$request->setRelayState( $this->wp_facade->admin_url() );
-		$request->setAssertionConsumerServiceURL( $this->wp_facade->wp_login_url() );
+		$request->setAssertionConsumerServiceURL( $this->wp_facade->site_url('wp-login.php', 'login_post') );
 		$request->setProtocolBinding( SAML2_Const::BINDING_HTTP_POST );
 		$request->setIsPassive( false );
 		$request->setNameIdPolicy( array(
@@ -331,7 +331,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 				throw new Exception( sprintf( "Entity \"%s\" is not in allowed audience", $this->entity_id ) );
 			} elseif ( ! $this->saml_response_service->is_timestamp_within_restrictions( $this->wp_facade->time() ) ) {
 				throw new Exception( "Response has expired" );
-			} elseif ( ! $this->saml_response_service->is_valid_destination( $this->wp_facade->wp_login_url() ) ) {
+			} elseif ( ! $this->saml_response_service->is_valid_destination( $this->get_login_post_url() ) ) {
 				throw new Exception( "Invalid response destination" );
 			} elseif ( $this->saml_response_service->is_session_index_registered() ) {
 				throw new Exception( sprintf(
@@ -387,7 +387,7 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		$this->saml_request_service->load_saml_request( $saml_request );
 		if ( ! $this->saml_request_service->is_timestamp_within_restrictions( $this->wp_facade->time() ) ) {
 			$this->wp_facade->wp_die( 'Invalid Request', 400 );
-		} elseif ( ! $this->saml_request_service->is_valid_destination( $this->wp_facade->wp_login_url() ) ) {
+		} elseif ( ! $this->saml_request_service->is_valid_destination( $this->get_login_post_url() ) ) {
 			$this->wp_facade->wp_die( 'Invalid Request', 400 );
 		} elseif ( ! $user = $this->wp_facade->get_user_by( 'login', $this->saml_request_service->get_name() ) ) {
 			$this->wp_facade->wp_die( 'Invalid Request', 400 );
@@ -430,5 +430,12 @@ class LaunchKey_WP_SSO_Client implements LaunchKey_WP_Client {
 		$values = $this->saml_response_service->get_attribute( $key );
 
 		return $values ? $values[0] : null;
+	}
+
+	/**
+	 * @return string
+	 */
+	private function get_login_post_url() {
+		return $this->wp_facade->site_url('wp-login.php', 'login_post');
 	}
 }

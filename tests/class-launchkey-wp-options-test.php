@@ -216,7 +216,8 @@ class LaunchKey_WP_Options_Test extends PHPUnit_Framework_TestCase {
 	 * @dataProvider data_provider_test_post_get_option_filter_has_expected_defaults
 	 */
 	public function test_post_get_option_filter_has_expected_defaults( $key, $expected ) {
-		$output = $this->options->post_get_option_filter( array() );
+		$options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::NATIVE;
+		$output = $this->options->post_get_option_filter( $options );
 		$this->assertArrayHasKey( $key, $output );
 		$this->assertSame( $expected, $output[ $key ] );
 	}

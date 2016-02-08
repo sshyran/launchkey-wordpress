@@ -904,10 +904,36 @@
     <form id="lk-settings-keys-form">
         <h2 class="lk-bold">Configuration Details</h2>
 
+        <div class="lk-setting">
+            <label for="settings_form_implementation_type">Type</label>
+            <div class="lk-inline-block">
+                <select id="settings_form_implementation_type" name="implementation_type">
+                    <option value="">Select an option...</option>
+                    <option value="native">LaunchKey MFA</option>
+                    <option value="sso">LaunchKey Single Sign On</option>
+                    <option value="white-label">White Label</option>
+                </select>
+                <button data-accordion="settings-1" class="lk-details">What is this?</button>
+                <div class="lk-setting-help" data-accordion-content="settings-1">
+                    <p>The implementation type for your site:</p>
+
+                    <h3>LaunchKey MFA</h3>
+                    <p>Standard multi-factor authentication utilizing the LaunchKey Authenticator App</p>
+
+                    <h3>LaunchKey Single Sign On</h3>
+                    <p>Multi-factor authentication utilizing the LaunchKey Single Sign On</p>
+
+                    <h3>White Label</h3>
+                    <p>Multi-factor authentication utilizing your own mobile app via the LaunchKey white label SDK</p>
+                </div>
+            </div>
+        </div>
+
         <div id="launchkey-settings-standard" class="%%%settings-standard-visible%%%">
             <p>These settings should match the information found within your Rocket inside
                 <a target="_blank" href="https://dashboard.launchkey.com/">LaunchKey Dashboard</a>
             </p>
+
 
             <div class="lk-setting">
                 <label for="settings_form_rocket_key">Rocket Key</label>
@@ -920,6 +946,7 @@
                         LaunchKey Rocket</p>
                 </div>
             </div>
+
             <div class="lk-setting">
                 <label for="settings_form_secret_key">Secret Key</label>
 
@@ -991,7 +1018,7 @@
                 </div>
             </div>
         </div>
-        <div id="launchkey-settings-sso" class="%%%settings-sso-visible%%%">
+        <div id="launchkey-settings-sso">
             <h2 class="lk-bold">Single Sign On Settings</h2>
 
             <div class="lk-setting">

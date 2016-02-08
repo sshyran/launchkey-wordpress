@@ -18,14 +18,6 @@
                 $('body').removeClass('lk-wizard')
             }
 
-            // Hide/show WL specific elements
-            if (launchkey_wizard_config.implementation_type == 'white-label') {
-                $('.lk-white-label-only').show();
-                $('.lk-standard-only').hide();
-            } else {
-                $('.lk-white-label-only').hide();
-                $('.lk-standard-only').show();
-            }
             // Scroll back to top
             window.scrollTo(0, 0)
         },
@@ -35,15 +27,6 @@
                 template = template.replace('%%%', val);
                 $('.launchkey-header').append(template);
             });
-            $('.notice-dismiss').on('click', function () {
-                $(this).parent().remove();
-            });
-            window.scrollTo(0, 0)
-        },
-        showNotice = function (notice) {
-            var template = $('#lk-notice-template').html();
-            template = template.replace('%%%', notice);
-            $('.launchkey-header').append(template);
             $('.notice-dismiss').on('click', function () {
                 $(this).parent().remove();
             });
@@ -73,8 +56,28 @@
                 error: function (data) {
                     showErrors(['Plugin Error.'])
                 }
-            });
+            })
+        },
+        handleImplementationType = function(implementation_type) {
+            if (implementation_type == 'native') {
+                $("#launchkey-settings-sso").hide();
+                $('#launchkey-settings-standard').show();
+                $('.lk-standard-only').show();
+                $('.lk-white-label-only').hide();
+            } else if (implementation_type == 'white-label') {
+                $("#launchkey-settings-sso").hide();
+                $('#launchkey-settings-standard').show();
+                $('.lk-standard-only').hide();
+                $('.lk-white-label-only').show();
+            } else if (implementation_type == 'sso') {
+                $('#launchkey-settings-standard').hide();
+                $("#launchkey-settings-sso").show();
+            } else {
+                $('#launchkey-settings-standard').hide();
+                $("#launchkey-settings-sso").hide();
+            }
         };
+    ;
 
     // Test to see if configured or not
     // Hide/show settings or wizard on load
@@ -145,6 +148,14 @@
         e.preventDefault();
         showQrCode();
     });
+
+    // Implementation type handling
+    handleImplementationType(config.implementation_type);
+    $('#settings_form_implementation_type').val(config.implementation_type);
+    $('#settings_form_implementation_type').change(function (event) {
+        handleImplementationType($(event.target).val());
+    });
+
 
     // Fouc
     $('.lk-fouc').removeClass('lk-fouc');

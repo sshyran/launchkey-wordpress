@@ -154,6 +154,7 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 
 	public function test_login_validates_destination() {
 		$this->client->authenticate( null, null, null );
+		Phake::verify( $this->facade )->site_url('wp-login.php', 'login_post');
 		Phake::verify( $this->saml_response_service )->is_valid_destination( static::SSO_POST_URL );
 	}
 
@@ -162,6 +163,7 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		     ->thenReturn( false );
 		$this->client->authenticate( null, null, null );
 		Phake::inOrder(
+			Phake::verify( $this->facade )->site_url('wp-login.php', 'login_post'),
 			Phake::verify( $this->saml_response_service )->is_valid_destination( static::SSO_POST_URL ),
 			Phake::verify( $this->facade )->wp_redirect( static::ERROR_URL ),
 			Phake::verify( $this->facade )->_exit( Phake::anyParameters() )
@@ -256,7 +258,7 @@ class LaunchKey_WP_SSO_Client_Authenticate_Test extends LaunchKey_WP_SSO_Client_
 		Phake::when( $this->facade )->get_user_by( Phake::anyParameters() )->thenReturn( $this->user );
 		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( $this->user );
 		Phake::when( $this->facade )->time( Phake::anyParameters() )->thenReturn( static::NOW );
-		Phake::when( $this->facade )->wp_login_url()->thenReturn( static::SSO_POST_URL );
+		Phake::when( $this->facade )->site_url( Phake::anyParameters() )->thenReturn( static::SSO_POST_URL );
 
 		Phake::when( $this->saml_response_service )->get_session_index()->thenReturn( static::SESSION_INDEX );
 		Phake::when( $this->saml_response_service )->get_name()->thenReturn( static::NAME );
