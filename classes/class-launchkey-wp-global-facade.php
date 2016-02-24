@@ -64,6 +64,7 @@
  * @method null add_settings_error() add_settings_error( string $setting, string $code, string $message, string $type = 'error' )
  * @method null add_settings_field() add_settings_field( string $id, string $title, callable $callback, string $page, string $section = 'default', array $args = array() )
  * @method bool is_multisite() is_multisite()
+ * @method string wp_hash_password() wp_hash_password( string $password )
  */
 class LaunchKey_WP_Global_Facade {
 

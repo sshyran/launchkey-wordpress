@@ -145,7 +145,12 @@ class LaunchKey_WP_User_Profile {
 			if ( $this->wp_facade->wp_verify_nonce( $_GET['launchkey_nonce'], LaunchKey_WP_User_Profile::NONCE_KEY ) ) {
 				$user = $this->wp_facade->wp_get_current_user();
 				if ( $user->ID > 0 ) {
-					$this->wp_facade->wp_update_user( array( 'ID' => $user->ID, 'user_pass' => '' ) );
+					$wpdb = $this->wp_facade->get_wpdb();
+					$wpdb->update( $wpdb->users, array( 'user_pass' => '' ), array( 'ID' => $user->ID ) );
+
+					// Redirect the user to the base page to affect the login if it's needed
+					preg_match('/^[^\?]+/', $_SERVER['REQUEST_URI'], $matches);
+					$this->wp_facade->wp_redirect($matches[0]);
 				}
 			}
 		}

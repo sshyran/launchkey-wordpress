@@ -125,5 +125,7 @@ if ( ! class_exists( 'wpdb' ) ) {
 		function prepare( $query, $args = null );
 
 		function query( $query );
+
+		function update( $table, $values,  $filter);
 	}
 }
