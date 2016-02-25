@@ -36,6 +36,12 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 	 */
 	private $launguage_domain;
 
+	/**
+	 * @Mock
+	 * @var wpdb
+	 */
+	private $wp_db;
+
 
 	public function test_register_actions_adds_action_profile_personal_options() {
 		$this->client->register_actions();
@@ -160,8 +166,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_non_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context(
-	) {
+	public function test_non_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
 		$expected_nonce = LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
 		$this->client->launchkey_personal_options( $this->user );
 		Phake::verify( $this->template )
@@ -181,8 +186,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_sso_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context(
-	) {
+	public function test_sso_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context() {
 		$this->user->ID                                                    = 1;
 		$this->user->user_pass                                             = null;
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
@@ -197,8 +201,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context(
-	) {
+	public function test_sso_when_launchkey_meta_data_and_password_paired_with_password_template_shown_with_the_correct_context() {
 		$expected_nonce                                                    =
 			LaunchKey_WP_User_Profile::NONCE_KEY . '_value';
 		$this->options[ LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE ] = LaunchKey_WP_Implementation_Type::SSO;
@@ -217,8 +220,7 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		$this->assertEquals( $expected_context, $actual_context );
 	}
 
-	public function test_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context(
-	) {
+	public function test_when_launchkey_meta_data_and_no_password_paired_without_password_template_shown_with_the_correct_context() {
 		$this->user->ID        = 1;
 		$this->user->user_pass = null;
 		$this->client->launchkey_personal_options( $this->user );
@@ -300,11 +302,14 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 	public function test_remove_password_handler_with_verified_nonce_removes_password() {
 		$_GET['launchkey_remove_password'] = '1';
 		$_GET['launchkey_nonce']           = 'nonce value';
+		$_SERVER['REQUEST_URI']            = '/expected/uri?launchkey_remove_password=1&launchkey_nonce=nonce+value';
+		$this->wp_db->users                = 'Expected Users Table';
 		Phake::when( $this->facade )->wp_verify_nonce( Phake::anyParameters() )->thenReturn( true );
 		$this->client->remove_password_handler();
 
 		Phake::verify( $this->facade )->wp_verify_nonce( 'nonce value', LaunchKey_WP_User_Profile::NONCE_KEY );
-		Phake::verify( $this->facade )->wp_update_user( array( 'ID' => 12345, 'user_pass' => '' ) );
+		Phake::verify( $this->wp_db )->update( 'Expected Users Table', array( 'user_pass' => '' ), array( 'ID' => 12345 ) );
+		Phake::verify( $this->facade )->wp_redirect( '/expected/uri' );
 	}
 
 	public function test_add_users_columns_adds_launchkey_paired_column_with_paired_title() {
@@ -371,6 +376,9 @@ class LaunchKey_WP_User_Profile_Test extends PHPUnit_Framework_TestCase {
 		} );
 
 		Phake::when( $this->facade )->wp_get_current_user()->thenReturn( $this->user );
+
+		Phake::when( $this->facade )->get_wpdb()->thenReturn( $this->wp_db );
+
 		$this->options = array(
 			LaunchKey_WP_Options::OPTION_APP_DISPLAY_NAME    => 'App Display Name',
 			LaunchKey_WP_Options::OPTION_IMPLEMENTATION_TYPE => LaunchKey_WP_Implementation_Type::OAUTH

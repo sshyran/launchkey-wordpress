@@ -34,7 +34,9 @@
  * @method WP_User get_user_by() get_user_by( string $field, mixed $value )
  *
  * @method mixed get_option() get_option( string $option, mixed $default = false )
+ * @method mixed get_network_option() get_network_option( string $option, mixed $default = false )
  * @method mixed get_site_option() get_site_option( string $option, mixed $default = false )
+
  * @method bool add_option() add_option( string $option, mixed $value = '', string $deprecated = '', string $autoload = 'yes' )
  * @method bool update_option() update_option( string $option, mixed $value, string $autoload = null )
  * @method bool update_site_option() update_site_option( string $option, mixed $value, string $autoload = null )
@@ -67,6 +69,7 @@
  * @method null add_settings_field() add_settings_field( string $id, string $title, callable $callback, string $page, string $section = 'default', array $args = array() )
  * @method bool is_multisite() is_multisite()
  * @method string dirname() dirname( string $dir )
+ * @method string wp_hash_password() wp_hash_password( string $password )
  */
 class LaunchKey_WP_Global_Facade {
 	/**
