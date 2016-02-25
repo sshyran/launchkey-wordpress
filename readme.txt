@@ -84,6 +84,10 @@ By default, your password will still remain after you pair your LaunchKey accoun
 Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 == Changelog ==
+= 1.4.2 =
+Merge stable 1.3.1 updates into development stream
+* Update remove password functionality to account for updates in WordPress 4.x
+
 = 1.4.1 =
 * Fix the settings to deal with the ability to change the implementation type
 * Fix context bug with SSO client in getting the login post URL
@@ -91,6 +95,9 @@ Remotely unpair your device at anytime by visiting: https://launchkey.com/unpair
 
 = 1.4.0 =
 * Add device based setup in Wizard
+
+= 1.3.1 =
+* Update remove password functionality to account for updates in WordPress 4.x
 
 = 1.3.0 =
 * Add network (multi-site) capability
